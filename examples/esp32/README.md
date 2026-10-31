@@ -1,6 +1,6 @@
 # ESP32-C6 ADS9324 examples
 
-Target is **esp32c6**. The `scripts/` tree is the shared [hf-espidf-project-tools](https://github.com/N3b3x/hf-espidf-project-tools) submodule.
+Target is **esp32c6**. The `scripts/` tree is the shared [hf-espidf-project-tools](https://github.com/hardfoc/hf-espidf-project-tools) submodule.
 
 ## Apps
 
