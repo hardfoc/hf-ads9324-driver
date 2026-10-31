@@ -14,4 +14,4 @@ nav_order: 2
 | [PGA and calibration](pga_and_calibration.md) | Ranges, offset, gain |
 | [ESP32-C6](examples.md) | Test framework and pin map |
 | [CMake](cmake_integration.md) | `hf::ads9324` |
-| [Datasheet](https://github.com/N3b3x/hf-ads9324-driver/tree/main/docs/datasheet) | SBASB22 PDF |
+| [Datasheet](https://github.com/hardfoc/hf-ads9324-driver/tree/main/docs/datasheet) | SBASB22 PDF |

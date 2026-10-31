@@ -7,7 +7,7 @@ nav_order: 9
 # Installation
 
 ```bash
-git clone --recurse-submodules https://github.com/N3b3x/hf-ads9324-driver.git
+git clone --recurse-submodules https://github.com/hardfoc/hf-ads9324-driver.git
 ```
 
 CMake consumer:
