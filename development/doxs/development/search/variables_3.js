@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['data_5fon_5fsdout_0',['data_on_sdout',['../structads9324_1_1Diagnostics.html#a9288efddc263be9bdac91fa82b9565b1',1,'ads9324::Diagnostics']]],
+  ['data_5fon_5fsdout_5f_1',['data_on_sdout_',['../classads9324_1_1ADS9324.html#a8d09fcfe5b5283c1e6cdeff61df75831',1,'ads9324::ADS9324']]],
+  ['default_5fbandwidth_2',['DEFAULT_BANDWIDTH',['../group__ads9324__config.html#ga15b8d796d435aad51622b94f78819a39',1,'ADS9324_CFG']]],
+  ['default_5fdata_5fon_5fsdout_3',['DEFAULT_DATA_ON_SDOUT',['../group__ads9324__config.html#ga959846dda02db0dbcbcdc1f5dbc47b05',1,'ADS9324_CFG']]],
+  ['default_5fformat_4',['DEFAULT_FORMAT',['../group__ads9324__config.html#ga04edfb74d33957dd6e718484d6ce4550',1,'ADS9324_CFG']]],
+  ['default_5finput_5ftype_5',['DEFAULT_INPUT_TYPE',['../group__ads9324__config.html#ga34185100a6f92271b609bc83c7273111',1,'ADS9324_CFG']]],
+  ['default_5flanes_6',['DEFAULT_LANES',['../group__ads9324__config.html#ga69fa025904976954ba006a442fdacd84',1,'ADS9324_CFG']]],
+  ['default_5flength_7',['DEFAULT_LENGTH',['../group__ads9324__config.html#ga100051c01ff2ec8bc681142eb556b8de',1,'ADS9324_CFG']]],
+  ['default_5frange_8',['DEFAULT_RANGE',['../group__ads9324__config.html#ga3aac6593526bae4fe57775c503321dd7',1,'ADS9324_CFG']]],
+  ['device_5fid_9',['device_id',['../structads9324_1_1Diagnostics.html#adecc62bf99b8f9383622b6e69d906299',1,'ads9324::Diagnostics']]],
+  ['device_5fid_10',['DEVICE_ID',['../group__ads9324__registers.html#ga378f81a6d707ae894ed87c271fc26048',1,'ads9324::reg']]],
+  ['device_5fstatus_11',['DEVICE_STATUS',['../group__ads9324__registers.html#ga080ce7a175a05c3e55d354085dd13865',1,'ads9324::reg']]],
+  ['device_5fstatus_5fcalib_5fbusy_12',['DEVICE_STATUS_CALIB_BUSY',['../group__ads9324__registers.html#gaecc6d8a5422ce6c09c33d53080157aca',1,'ads9324::reg']]],
+  ['diag_5fctrl_13',['DIAG_CTRL',['../group__ads9324__registers.html#gac0d5cc1069e8584b4ed9c18bd10cf00c',1,'ads9324::reg']]],
+  ['dig_5fdelay_5fcfg1_14',['DIG_DELAY_CFG1',['../group__ads9324__registers.html#gaf6d5ab8e247d37c3aeaff7487aef8992',1,'ads9324::reg']]],
+  ['dig_5fdelay_5fcfg2_15',['DIG_DELAY_CFG2',['../group__ads9324__registers.html#ga1268f357045d28c00b621cb525f67ef1',1,'ads9324::reg']]],
+  ['dig_5ffilter_16',['DIG_FILTER',['../group__ads9324__registers.html#ga1bdfa3d6d7252544601d226de9696c4d',1,'ads9324::reg']]],
+  ['drdy_5falarm_5fsel_17',['DRDY_ALARM_SEL',['../group__ads9324__registers.html#ga4dc6dd8034f2ffaa050a1820eae8f949',1,'ads9324::reg']]],
+  ['drdy_5ftimeout_5fus_18',['DRDY_TIMEOUT_US',['../group__ads9324__config.html#gaa01a0f64147ff27cda438273ef0e8cc6',1,'ADS9324_CFG']]],
+  ['dwc_5fcfg_19',['DWC_CFG',['../group__ads9324__registers.html#gacb02c264ed57b7e1e5142fdaff268d77',1,'ads9324::reg']]],
+  ['dwc_5fcfg_5fstat_5frst_20',['DWC_CFG_STAT_RST',['../group__ads9324__registers.html#ga65333d3228d5e06add325f363922362e',1,'ads9324::reg']]],
+  ['dwc_5fhys_5f12_21',['DWC_HYS_12',['../group__ads9324__registers.html#gaaf397cef7edbff2f00e878e98e7f8c9f',1,'ads9324::reg']]],
+  ['dwc_5fth_5fain1_22',['DWC_TH_AIN1',['../group__ads9324__registers.html#gaa9e1d1993893f58b318b83e0c3531c57',1,'ads9324::reg']]]
+];

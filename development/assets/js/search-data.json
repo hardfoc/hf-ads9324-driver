@@ -1,0 +1,212 @@
+{"0": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "HF-ADS9324 Driver",
+    "content": "Portable C++20 driver for the Texas Instruments ADS9324 — 16-channel, 16-bit, 1 MSPS simultaneous-sampling SAR ADC with integrated analog front-end (PGA, differential / single-ended, offset and gain calibration). This repository owns the silicon protocol only. Hosts implement SpiInterface and HostInterface (see examples/esp32/ for one CRTP backend). ",
+    "url": "/hf-ads9324/development/#hf-ads9324-driver",
+    
+    "relUrl": "/#hf-ads9324-driver"
+  },"1": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "Overview",
+    "content": "The ADS9324 (TI SBASB22, December 2025) is a 16-channel data-acquisition SoC: each channel has a clamp, PGA, and SAR. CONVST falling edge samples all enabled channels together. The default digital path in this driver is 1-lane 16-bit conversion data on SDOUT plus 24-bit configuration SPI on the same SDI/SCLK/CS pins (Table 7-18), so a normal SPI controller can bring the part up without a multi-lane capture engine. Datasheet (PDF + extracted text) lives in docs/datasheet/. ",
+    "url": "/hf-ads9324/development/#overview",
+    
+    "relUrl": "/#overview"
+  },"2": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "Features",
+    "content": ". | 16 simultaneous 16-bit channels (hardware AIN1–AIN16 → API channels 0–15) | Integrated PGA: differential, single-ended, open-wire-safe; ±2.5 / ±5 / ±6.25 / ±10 / ±12.5 V | Per-channel analog LPF (low ~25.5 kHz or wide 280–350 kHz) | 10-bit offset and 14-bit gain calibration registers | Digital window comparator | CONVST + optional DRDY host pins | CRTP SpiInterface + HostInterface (zero virtual overhead) | ESP32-C6 examples + TestFramework.h integration suite | Host protocol unit tests (no silicon) | . ",
+    "url": "/hf-ads9324/development/#features",
+    
+    "relUrl": "/#features"
+  },"3": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "Quick start",
+    "content": "| 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 . | #include \"ads9324.hpp\" class MySpi : public ads9324::SpiInterface&lt;MySpi&gt; { public: void transfer(const uint8_t* tx, uint8_t* rx, size_t len) { /* CS-scoped SPI */ } }; class MyHost : public ads9324::HostInterface&lt;MyHost&gt; { public: void ConvstWrite(bool high); bool DrdyRead(); bool HasDrdy() const { return true; } void DelayUs(uint32_t us); void DelayMs(uint32_t ms); }; MySpi spi; MyHost host; ads9324::ADS9324&lt;MySpi, MyHost&gt; adc(spi, host); adc.EnsureInitialized(); // 30 ms rail settle, SW reset, GEN_CFG3=0x0032, DEVICE_ID ads9324::ChannelConfig cfg; cfg.type = ads9324::InputType::Differential; cfg.range = ads9324::InputRange::PlusMinus10V; adc.ConfigureChannel(0, cfg); auto snap = adc.ReadSnapshot(); . | . ",
+    "url": "/hf-ads9324/development/#quick-start",
+    
+    "relUrl": "/#quick-start"
+  },"4": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "ESP32-C6",
+    "content": "| 1 2 3 4 . | cd examples/esp32 idf.py set-target esp32c6 ./scripts/build_app.sh driver_integration_test Debug ./scripts/flash_app.sh driver_integration_test Debug . | . Default pins (edit main/esp32_ads9324_test_config.hpp): . | Function | GPIO | . | SDOUT (MISO) | 5 | . | SDI (MOSI) | 6 | . | SCLK | 4 | . | CS | 10 | . | CONVST | 3 | . | DRDY | 11 | . ",
+    "url": "/hf-ads9324/development/#esp32-c6",
+    
+    "relUrl": "/#esp32-c6"
+  },"5": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "License",
+    "content": "GPL-3.0 — see LICENSE. ",
+    "url": "/hf-ads9324/development/#license",
+    
+    "relUrl": "/#license"
+  },"6": {
+    "doc": "HardFOC ADS9324 Driver",
+    "title": "HardFOC ADS9324 Driver",
+    "content": " ",
+    "url": "/hf-ads9324/development/",
+    
+    "relUrl": "/"
+  },"7": {
+    "doc": "API reference",
+    "title": "API reference",
+    "content": "Class: ads9324::ADS9324&lt;SpiType, HostType&gt; . | Method | Purpose | . | EnsureInitialized(force) | Rail delay, SW reset, 1-lane SDOUT, DEVICE_ID | . | SoftwareReset() | GEN_CFG1.SW_RST | . | ReadDeviceId() | Common 0x21, expect 0x0004 | . | ConfigureChannel(ch, cfg) | PGA nibble + bandwidth for channel 0–15 | . | ConfigureAllChannels(cfg) | All 16 channels | . | SetChannelOffset(ch, ofs10) | OFS_AINx, 10-bit two’s complement | . | SetChannelGain(ch, gan14) | GAN_AINx, 14-bit | . | SetDataFormat | Two’s complement or offset binary | . | SetDigitalInterface | Lane count / 16 vs 24 bit / SDOUT vs D7 | . | SetChannelCountMode | 16/8/4/2 channel readout (Table 7-12) | . | SetPowerDown | PDN_CTL.DEVICE_PDN | . | SetAlarmPin | DRDY vs DWC vs CAL_DONE | . | ProgramWindowComparator | DWC_TH + DWC_EN | . | ReadSnapshot | CONVST + burst | . | ReadChannel | Snapshot then pick one channel (16-ch mode) | . | CountToVoltage | Uses that channel’s programmed FS | . Types live in ads9324_types.hpp. Frame packing lives in ads9324_registers.hpp. ",
+    "url": "/hf-ads9324/development/docs/api_reference.html",
+    
+    "relUrl": "/docs/api_reference.html"
+  },"8": {
+    "doc": "CMake",
+    "title": "CMake",
+    "content": "Standalone: . | 1 2 . | add_subdirectory(hf-ads9324-driver) target_link_libraries(app PRIVATE hf::ads9324) . | . Host tests: . | 1 2 3 . | cmake -S . -B build -DHF_ADS9324_BUILD_HOST_TESTS=ON cmake --build build ctest --test-dir build . | . ",
+    "url": "/hf-ads9324/development/docs/cmake_integration.html",
+    
+    "relUrl": "/docs/cmake_integration.html"
+  },"9": {
+    "doc": "Configuration",
+    "title": "Configuration",
+    "content": "Compile-time knobs in ads9324_config.hpp (override with -DCONFIG_ADS9324_*): . | Macro | Effect | . | CONFIG_ADS9324_RANGE_12V5 / _10V / _2V5 | Default PGA full-scale | . | CONFIG_ADS9324_SINGLE_ENDED | Default input type | . | CONFIG_ADS9324_PGA_WIDE | Default analog LPF | . | CONFIG_ADS9324_OFFSET_BINARY | Wire format | . | CONFIG_ADS9324_SKIP_DEVICE_ID_CHECK | Bring-up without ID match | . | CONFIG_ADS9324_POWER_ON_DELAY_MS | Default 30 | . | CONFIG_ADS9324_DRDY_TIMEOUT_US | Default 1000 | . | CONFIG_ADS9324_CONV_FALLBACK_US | Used when DRDY is not wired | . ",
+    "url": "/hf-ads9324/development/docs/configuration.html",
+    
+    "relUrl": "/docs/configuration.html"
+  },"10": {
+    "doc": "Examples",
+    "title": "Examples",
+    "content": "ESP32-C6 apps under examples/esp32/: . | driver_integration_test — full TestFramework suite | basic_snapshot — print loop | pga_offset — mixed PGA + calibration | . Host (no IDF): tests/host/test_ads9324_protocol.cpp. ",
+    "url": "/hf-ads9324/development/docs/examples.html",
+    
+    "relUrl": "/docs/examples.html"
+  },"11": {
+    "doc": "Hardware setup",
+    "title": "Hardware setup",
+    "content": "This driver uses the 1-lane SDOUT digital path (GEN_CFG3 = 0x0032 at bring-up). Parallel D[7:0] is not captured — leave those pins unconnected or parked per SBASB22 if the board does not route them. ",
+    "url": "/hf-ads9324/development/docs/hardware_setup.html",
+    
+    "relUrl": "/docs/hardware_setup.html"
+  },"12": {
+    "doc": "Hardware setup",
+    "title": "Minimum wiring",
+    "content": "| ADS9324 | Host | Notes | . | SDI | MOSI | Config + dummy clocks during conversion readout | . | SDOUT | MISO | Conversion data in 1-lane mode | . | SCLK | SCLK | Mode 0 (CPOL=0, CPHA=0). 8 MHz is the ESP32-C6 example default | . | CS | CS | Active low. One CS per transfer() call; do not deassert mid-frame | . | CONVST | GPIO out | Active-high pulse; falling edge starts conversion (≥ 50 ns high) | . | DRDY/ALARM | GPIO in | Optional. Default mux is conversion-complete. If NC, driver waits CONV_FALLBACK_US | . | IOVDD / AVDD / REFIO | Supplies | Bypass per SBASB22 recommended layout | . ESP32-C6 example defaults (edit examples/esp32/main/esp32_ads9324_test_config.hpp): . | Function | GPIO | . | SDOUT (MISO) | 5 | . | SDI (MOSI) | 6 | . | SCLK | 4 | . | CS | 10 | . | CONVST | 3 | . | DRDY | 11 | . Map host GPIO “active” to CONVST high. ",
+    "url": "/hf-ads9324/development/docs/hardware_setup.html#minimum-wiring",
+    
+    "relUrl": "/docs/hardware_setup.html#minimum-wiring"
+  },"13": {
+    "doc": "Hardware setup",
+    "title": "Timing (SBASB22)",
+    "content": ". | Wait 30 ms after analog/digital rails before the first SPI frame (Table 7-18). The driver does this in EnsureInitialized. | After GEN_CFG1.SW_RST, wait RESET_DELAY_MS (default 1 ms) then reprogram GEN_CFG3. | Config frames are 24 bits (8-bit address + 16-bit data), latched on SCLK rising, decoded on CS rising (§7.5). | Conversion readout is one CS-low burst: 32 bytes for 16 channels × 16-bit, or 48 bytes in 24-bit DOUT_LENGTH. | . ",
+    "url": "/hf-ads9324/development/docs/hardware_setup.html#timing-sbasb22",
+    
+    "relUrl": "/docs/hardware_setup.html#timing-sbasb22"
+  },"14": {
+    "doc": "Index",
+    "title": "ADS9324 documentation",
+    "content": "| Page | Contents | . | Quick start | Init sequence and first snapshot | . | API | Driver methods | . | Registers | Banks, 24-bit frames, GEN_CFG3 | . | PGA and calibration | Ranges, offset, gain | . | ESP32-C6 | Test framework and pin map | . | CMake | hf::ads9324 | . | Datasheet | SBASB22 PDF | . ",
+    "url": "/hf-ads9324/development/docs/#ads9324-documentation",
+    
+    "relUrl": "/docs/#ads9324-documentation"
+  },"15": {
+    "doc": "Index",
+    "title": "Index",
+    "content": " ",
+    "url": "/hf-ads9324/development/docs/",
+    
+    "relUrl": "/docs/"
+  },"16": {
+    "doc": "Installation",
+    "title": "Installation",
+    "content": "| 1 . | git clone --recurse-submodules https://github.com/hardfoc/hf-ads9324-driver.git . | . CMake consumer: . | 1 2 . | add_subdirectory(hf-ads9324-driver) target_link_libraries(your_app PRIVATE hf::ads9324) . | . ESP-IDF: use examples/esp32 and idf.py set-target esp32c6. ",
+    "url": "/hf-ads9324/development/docs/installation.html",
+    
+    "relUrl": "/docs/installation.html"
+  },"17": {
+    "doc": "PGA and calibration",
+    "title": "PGA, offset, and gain",
+    "content": "Each channel’s PGA_CONFIG nibble (Table 7-1 / register 0x08–0x0B): . | INPUT_RANGE[2:0]: 0=±5 V, 2=±2.5 V, 3=±6.25 V, 4=±10 V, 5=±12.5 V | CM_RANGE[2:0]: 0=differential, 5=single-ended, 6=open-wire-safe | CME_CORR_EN: common-mode error correction | . PGA_BW_SEL (0x0C): 2 bits per channel, 0=low bandwidth (~25.5 kHz), 1=wide. Offset (Equation 1): 10-bit two’s-complement OFS_AINx added as (code×4 + OFS)/4. Gain (Equation 2): 14-bit GAN_AINx, correction = GAN / 65536. ",
+    "url": "/hf-ads9324/development/docs/pga_and_calibration.html#pga-offset-and-gain",
+    
+    "relUrl": "/docs/pga_and_calibration.html#pga-offset-and-gain"
+  },"18": {
+    "doc": "PGA and calibration",
+    "title": "PGA and calibration",
+    "content": " ",
+    "url": "/hf-ads9324/development/docs/pga_and_calibration.html",
+    
+    "relUrl": "/docs/pga_and_calibration.html"
+  },"19": {
+    "doc": "Platform integration",
+    "title": "Platform integration",
+    "content": "The driver has no OS or MCU headers. Bind two CRTP types, then construct ads9324::ADS9324&lt;Spi, Host&gt;. ",
+    "url": "/hf-ads9324/development/docs/platform_integration.html",
+    
+    "relUrl": "/docs/platform_integration.html"
+  },"20": {
+    "doc": "Platform integration",
+    "title": "SpiInterface&lt;Derived&gt;",
+    "content": "Implement: . | 1 . | void transfer(const uint8_t* tx, uint8_t* rx, size_t len); . | . Contract: . | Assert CS for the entire len, then deassert. Config frames are 3 bytes. Conversion bursts are N * 2 bytes (16-bit) or N * 3 (24-bit). | tx == nullptr means clock zeros (conversion readout). | rx == nullptr means discard MISO (config writes). | SPI mode 0, MSB first. 8 MHz is a conservative start vs the 1 MSPS analog path. | . ",
+    "url": "/hf-ads9324/development/docs/platform_integration.html#spiinterfacederived",
+    
+    "relUrl": "/docs/platform_integration.html#spiinterfacederived"
+  },"21": {
+    "doc": "Platform integration",
+    "title": "HostInterface&lt;Derived&gt;",
+    "content": "| Method | Role | . | ConvstWrite(bool high) | CONVST pin. High then low; conversion on falling edge | . | HasDrdy() const | false → timed wait (ADS9324_CFG::CONV_FALLBACK_US) | . | DrdyRead() | Sample DRDY/ALARM (conversion-complete in default mux) | . | DelayUs / DelayMs | POR (30 ms), reset settle, DRDY poll step | . ",
+    "url": "/hf-ads9324/development/docs/platform_integration.html#hostinterfacederived",
+    
+    "relUrl": "/docs/platform_integration.html#hostinterfacederived"
+  },"22": {
+    "doc": "Platform integration",
+    "title": "Reference implementation",
+    "content": "ESP32-C6: examples/esp32/main/esp32_ads9324_bus.hpp. A consuming platform (handler, HAL, Linux spidev, …) implements the same two CRTP contracts. This driver does not include or name those layers. ",
+    "url": "/hf-ads9324/development/docs/platform_integration.html#reference-implementation",
+    
+    "relUrl": "/docs/platform_integration.html#reference-implementation"
+  },"23": {
+    "doc": "Platform integration",
+    "title": "Channel numbering",
+    "content": "API channel 0 = hardware AIN1, channel 15 = AIN16. Register names in SBASB22 stay 1-based. ",
+    "url": "/hf-ads9324/development/docs/platform_integration.html#channel-numbering",
+    
+    "relUrl": "/docs/platform_integration.html#channel-numbering"
+  },"24": {
+    "doc": "Quick start",
+    "title": "Quick start",
+    "content": ". | Implement ads9324::SpiInterface (full-duplex, CS around each transfer). | Implement ads9324::HostInterface (CONVST output, optional DRDY, delays). | Call EnsureInitialized() — waits 30 ms, software-resets, programs GEN_CFG3 = 0x0032 (1-lane, 16-bit, data on SDOUT), reads DEVICE_ID = 0x0004. | ConfigureChannel / ConfigureAllChannels for PGA range and input type. | ReadSnapshot() pulses CONVST, waits DRDY or 10 µs, clocks 16×16 bits on SDOUT. | . Do not clock conversion data in the default 8-lane D[7:0] mode unless the host has a parallel capture engine. This driver always programs 1-lane SDOUT for MCU/ESP32 bring-up. ",
+    "url": "/hf-ads9324/development/docs/quickstart.html",
+    
+    "relUrl": "/docs/quickstart.html"
+  },"25": {
+    "doc": "Registers",
+    "title": "Registers and SPI frames",
+    "content": "Configuration SPI is 24 bits: SDI[23:16] = address, SDI[15:0] = data. CS rising edge commits the write (SBASB22 §7.5.1). Three banks, selected by writing BANK_SEL (0x02): . | Value | Bank | . | 0x0001 | Common | . | 0x0002 | AIN1–AIN8 | . | 0x0004 | AIN9–AIN16 | . Register read (Table 7-17): select bank, write GEN_CFG1 with REG_RD_ADD in bits 15:8 and REG_RD_EN=1, then a dummy 0x000000 frame. Register data returns in SDOUT[23:8]. Default bring-up (Table 7-18): GEN_CFG3 = 0x0032 → 1 lane, 16-bit length, ADC_DATA_SDOUT_EN=1. ",
+    "url": "/hf-ads9324/development/docs/registers.html#registers-and-spi-frames",
+    
+    "relUrl": "/docs/registers.html#registers-and-spi-frames"
+  },"26": {
+    "doc": "Registers",
+    "title": "Registers",
+    "content": " ",
+    "url": "/hf-ads9324/development/docs/registers.html",
+    
+    "relUrl": "/docs/registers.html"
+  },"27": {
+    "doc": "Troubleshooting",
+    "title": "Troubleshooting",
+    "content": "| Symptom | Likely cause | . | EnsureInitialized fails DEVICE_ID | SPI mode not 0, CS polarity, 24-bit frame packing, analog rail not up | . | DEVICE_ID is 0 | Read protocol skipped dummy frame; SDOUT not connected | . | Snapshot all zeros / timeout | CONVST not pulsing, DRDY polarity, still in 8-lane D[7:0] mode | . | PGA write does not stick | Wrong register bank (AIN1–8 vs AIN9–16) | . | Voltage scale wrong | Channel InputRange not programmed; two’s vs offset-binary | . Host protocol tests (no silicon): . | 1 . | cmake -S . -B build -DHF_ADS9324_BUILD_HOST_TESTS=ON &amp;&amp; cmake --build build &amp;&amp; ctest --test-dir build . | . ",
+    "url": "/hf-ads9324/development/docs/troubleshooting.html",
+    
+    "relUrl": "/docs/troubleshooting.html"
+  },"28": {
+    "doc": "Datasheet",
+    "title": "Datasheet",
+    "content": "# Datasheet Canonical TI document: **ADS9324** — *16-Channel, 16-Bit, 1 MSPS, Simultaneous-Sampling SAR ADC With Integrated Analog Front-End*, SBASB22, December 2025. | File | Role |------|------| [`ads9324.pdf`](/hf-ads9324/development/docs/datasheet/ads9324.pdf) | Vendor PDF (copied from the local download used to author this driver) | [`ads9324_text.txt`](/hf-ads9324/development/docs/datasheet/ads9324_text.txt) | `pdftotext -layout` extract for search / agent review | Product page: ",
+    "url": "/hf-ads9324/development/docs/datasheet/",
+    
+    "relUrl": "/docs/datasheet/"
+  },"29": {
+    "doc": "ESP32-C6 ADS9324 examples",
+    "title": "ESP32-C6 ADS9324 examples",
+    "content": "# ESP32-C6 ADS9324 examples Target is **esp32c6**. The `scripts/` tree is the shared [hf-espidf-project-tools](https://github.com/hardfoc/hf-espidf-project-tools) submodule. ## Apps | App | Source | Notes |-----|--------|-------| `driver_integration_test` | `driver_integration_test.cpp` | DEVICE_ID, PGA, snapshot, cal, power-down | `basic_snapshot` | `basic_snapshot_example.cpp` | Live 16-ch print loop | `pga_offset` | `pga_offset_example.cpp` | Mixed ranges + OFS/GAN | ```bash cd examples/esp32 idf.py set-target esp32c6 ./scripts/build_app.sh list ./scripts/build_app.sh driver_integration_test Debug ./scripts/flash_app.sh driver_integration_test Debug ``` Edit `main/esp32_ads9324_test_config.hpp` for your wiring. CONVST is required. DRDY can be disabled (`USE_DRDY = false`) to use a timed wait. `TestFramework.h` records pass/fail and toggles a progress GPIO (GPIO14 when present). ",
+    "url": "/hf-ads9324/development/examples/esp32/",
+    
+    "relUrl": "/examples/esp32/"
+  }
+}

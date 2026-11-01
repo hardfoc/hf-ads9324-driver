@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['sbasb22_0',['Timing (SBASB22)',['../md_docs_2hardware__setup.html#autotoc_md12',1,'']]],
+  ['selectbank_1',['selectBank',['../classads9324_1_1ADS9324.html#a69b0319c935ba930f385a1e080d095bc',1,'ads9324::ADS9324']]],
+  ['setalarmpin_2',['SetAlarmPin',['../classads9324_1_1ADS9324.html#a7e9c0abd007056b022cf7135f0fda085',1,'ads9324::ADS9324']]],
+  ['setchannelcountmode_3',['SetChannelCountMode',['../classads9324_1_1ADS9324.html#adcde9d734a293e707245390ce0ea7a6a',1,'ads9324::ADS9324']]],
+  ['setchannelgain_4',['SetChannelGain',['../classads9324_1_1ADS9324.html#aedf9976185a792afe1c7a283706a6c9d',1,'ads9324::ADS9324']]],
+  ['setchanneloffset_5',['SetChannelOffset',['../classads9324_1_1ADS9324.html#a801515a5ce6b10b69a1c5fe295f6f4e9',1,'ads9324::ADS9324']]],
+  ['setdataformat_6',['SetDataFormat',['../classads9324_1_1ADS9324.html#af1e8e5d6442bf41c19ccd8ebb80e44a4',1,'ads9324::ADS9324']]],
+  ['setdigitalinterface_7',['SetDigitalInterface',['../classads9324_1_1ADS9324.html#af8a0a4af75f92d0e566a50be5cbd2b25',1,'ads9324::ADS9324']]],
+  ['setpowerdown_8',['SetPowerDown',['../classads9324_1_1ADS9324.html#a75798ca2e80bfa00502e91d7d7f61d74',1,'ads9324::ADS9324']]],
+  ['setup_9',['Hardware setup',['../md_docs_2hardware__setup.html',1,'']]],
+  ['singleended_10',['SingleEnded',['../group__ads9324__types.html#ggade2a89b324cf93eb684cf6b7da848517a3bdea3ac1bbf38ef341bac5a9d204459',1,'ads9324']]],
+  ['singleendedopenwiresafe_11',['SingleEndedOpenWireSafe',['../group__ads9324__types.html#ggade2a89b324cf93eb684cf6b7da848517a52e5c4ca81eb1cdb28ad8843dd8b7437',1,'ads9324']]],
+  ['snapshot_12',['Snapshot',['../structads9324_1_1Snapshot.html',1,'ads9324']]],
+  ['snapshots_13',['snapshots',['../structads9324_1_1Diagnostics.html#a89f7aa235842246f13f377e64749f9e2',1,'ads9324::Diagnostics']]],
+  ['snapshots_5f_14',['snapshots_',['../classads9324_1_1ADS9324.html#a467748fbf09c2cb9a07f382109a053a4',1,'ads9324::ADS9324']]],
+  ['softwarereset_15',['SoftwareReset',['../classads9324_1_1ADS9324.html#a83b147f2304c63657d46c04804db54a7',1,'ads9324::ADS9324']]],
+  ['spi_20frames_16',['Registers and SPI frames',['../md_docs_2registers.html',1,'']]],
+  ['spi_5f_17',['spi_',['../classads9324_1_1ADS9324.html#a602d5682532f17ec77cc0862ffd48e50',1,'ads9324::ADS9324']]],
+  ['spierror_18',['SpiError',['../group__ads9324__types.html#gga256d16221bb9600d49cf8696fb24b981a4a9f044cba37c05b591c75f44fa85a8d',1,'ads9324']]],
+  ['spiinterface_19',['SpiInterface',['../classads9324_1_1SpiInterface.html',1,'ads9324::SpiInterface&lt; Derived &gt;'],['../classads9324_1_1SpiInterface.html#afb72ef13fd8e375df8f98bba9c837007',1,'ads9324::SpiInterface::SpiInterface(const SpiInterface &amp;)=delete'],['../classads9324_1_1SpiInterface.html#af782e3a1228d0e222719d621ec784bc9',1,'ads9324::SpiInterface::SpiInterface()=default'],['../classads9324_1_1SpiInterface.html#a0f636ef85d3d4832ce21ad6aed828e5c',1,'ads9324::SpiInterface::SpiInterface(SpiInterface &amp;&amp;)=default']]],
+  ['spiinterface_20derived_20tt_20',['&lt;tt&gt;SpiInterface\&lt;Derived\&gt;&lt;/tt&gt;',['../md_docs_2platform__integration.html#autotoc_md17',1,'']]],
+  ['spitransfer24_21',['spiTransfer24',['../classads9324_1_1ADS9324.html#a07a57c6025d749a8991d803da5848d1e',1,'ads9324::ADS9324']]],
+  ['start_22',['Quick start',['../md_docs_2quickstart.html',1,'']]],
+  ['start_23',['Quick start',['../index.html#autotoc_md3',1,'']]]
+];
