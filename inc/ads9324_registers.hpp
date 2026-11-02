@@ -77,6 +77,11 @@ inline constexpr uint16_t ANA_CFG1_EXT_REF_EN      = (1u << 0);  ///< External r
 
 inline constexpr uint16_t DEVICE_STATUS_CALIB_BUSY = (1u << 3);  ///< Calibration in progress.
 
+inline constexpr uint16_t ADC_CAL_SE_DIFF_AIN1_8 = (1u << 13);  ///< 1 = AIN1-8 differential.
+inline constexpr uint16_t ADC_CAL_SE_DIFF_AIN9_16 = (1u << 12); ///< 1 = AIN9-16 differential.
+inline constexpr uint16_t ADC_CAL_TRIG = (1u << 8);             ///< 0->1 starts ADC_CAL.
+inline constexpr uint16_t ADC_CAL_MODE_MASK = 0x0003u;          ///< ADC_CAL_MODE[1:0].
+
 inline constexpr uint16_t DIG_FILTER_INT_TRIG_MODE = (1u << 1); ///< Internal oversampling trigger.
 inline constexpr uint16_t DIG_FILTER_SYSREF = (1u << 0);   ///< 0→1 resets the filter accumulator.
 inline constexpr uint8_t DIG_FILTER_BLK_AVG_OSR_SHIFT = 4; ///< BLK_AVG_OSR[3:0] in bits 7:4.
@@ -95,7 +100,11 @@ inline constexpr uint8_t DWC_CFG          = 0x21;  ///< Window-comparator enable
 inline constexpr uint8_t DWC_TH_AIN1      = 0x22;  ///< High/low 8-bit thresholds packed per channel.
 inline constexpr uint8_t DWC_HYS_12       = 0x2A;  ///< Pair hysteresis registers.
 
+inline constexpr uint8_t CH_GEN_CFG5 = 0x37; ///< Channel-bank GEN_CFG5: system-correction disables.
+
 inline constexpr uint16_t DWC_CFG_STAT_RST = (1u << 15);  ///< Clear DWC status.
+inline constexpr uint16_t CH_GEN_CFG5_OFS_CORR_DIS = (1u << 1); ///< Bank's OFS_AINn not applied.
+inline constexpr uint16_t CH_GEN_CFG5_GAN_CORR_DIS = (1u << 0); ///< Bank's GAN_AINn not applied.
 
 /**
  * @brief Pack a 24-bit configuration write frame.
@@ -268,6 +277,25 @@ inline constexpr uint16_t DWC_CFG_STAT_RST = (1u << 15);  ///< Clear DWC status.
       static_cast<uint16_t>((static_cast<uint16_t>(osr) & 0xFu) << DIG_FILTER_BLK_AVG_OSR_SHIFT);
   if (clock == OversamplingClock::Internal) {
     v = static_cast<uint16_t>(v | DIG_FILTER_INT_TRIG_MODE);
+  }
+  return v;
+}
+
+/**
+ * @brief Build ADC_CAL (SBASB22 Table 8-16) without ADC_CAL_TRIG.
+ * @param mode     ADC_CAL_MODE.
+ * @param diff1_8  SE_DIFF_MODE_AIN1_8: true = differential inputs on AIN1-8.
+ * @param diff9_16 SE_DIFF_MODE_AIN9_16.
+ * @return 16-bit ADC_CAL value.
+ */
+[[nodiscard]] inline constexpr uint16_t AdcCalValue(AdcCalMode mode, bool diff1_8,
+                                                    bool diff9_16) noexcept {
+  auto v = static_cast<uint16_t>(static_cast<uint16_t>(mode) & ADC_CAL_MODE_MASK);
+  if (diff1_8) {
+    v = static_cast<uint16_t>(v | ADC_CAL_SE_DIFF_AIN1_8);
+  }
+  if (diff9_16) {
+    v = static_cast<uint16_t>(v | ADC_CAL_SE_DIFF_AIN9_16);
   }
   return v;
 }

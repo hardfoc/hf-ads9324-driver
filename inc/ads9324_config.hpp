@@ -112,6 +112,24 @@ inline constexpr uint32_t CONV_FALLBACK_US = CONFIG_ADS9324_CONV_FALLBACK_US;
 inline constexpr uint32_t CONV_FALLBACK_US = 10;
 #endif
 
+#ifdef CONFIG_ADS9324_ADC_CAL_WAIT_MS
+inline constexpr uint32_t ADC_CAL_WAIT_MS = CONFIG_ADS9324_ADC_CAL_WAIT_MS;
+#else
+/**
+ * @brief Wait after triggering single-shot ADC_CAL before checking CALIB_BUSY, in ms.
+ *
+ * T<sub>WAIT</sub> = 125 ms with INT_TRIG_MODE = 1 (SBASB22 Table 7-7, §7.3.10 step 7).
+ */
+inline constexpr uint32_t ADC_CAL_WAIT_MS = 125;
+#endif
+
+#ifdef CONFIG_ADS9324_ADC_CAL_TIMEOUT_MS
+inline constexpr uint32_t ADC_CAL_TIMEOUT_MS = CONFIG_ADS9324_ADC_CAL_TIMEOUT_MS;
+#else
+/** @brief Further CALIB_BUSY poll budget after @ref ADC_CAL_WAIT_MS, in 1 ms steps. */
+inline constexpr uint32_t ADC_CAL_TIMEOUT_MS = 125;
+#endif
+
 /** @brief Default GEN_CFG3 lane mode — 1-lane SDOUT (supported capture path). */
 inline constexpr ads9324::DoutLaneMode DEFAULT_LANES = ads9324::DoutLaneMode::Lane1;
 

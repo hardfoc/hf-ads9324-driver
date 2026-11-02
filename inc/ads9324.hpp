@@ -259,6 +259,63 @@ public:
   bool SetChannelGain(uint8_t channel, int16_t gain) noexcept;
 
   /**
+   * @brief Enable or disable the system offset and gain corrections of all 16 channels.
+   *
+   * Writes OFS_CORR_DIS (bit 1) and GAN_CORR_DIS (bit 0) of the channel-bank
+   * GEN_CFG5 (0x37) in both banks (SBASB22 §7.3.8, §7.3.9, Table 8-70,
+   * Table 8-121). Both are enabled at reset; disabling keeps the OFS_AINn /
+   * GAN_AINn values but stops applying them.
+   *
+   * @param offset true = apply OFS_AINn.
+   * @param gain   true = apply GAN_AINn.
+   * @retval true  Both banks written.
+   * @retval false Bus error.
+   */
+  bool SetSystemCorrection(bool offset, bool gain) noexcept;
+
+  /**
+   * @brief Run the on-chip ADC_CAL module once (single-shot mode, SBASB22 §7.3.10).
+   *
+   * The ADC disconnects its inputs for T<sub>WAIT</sub> = 125 ms (Table 7-7)
+   * and measures its own offset and/or gain error; the correction stays
+   * applied until @ref AdcCalMode::Disabled or a reset. The analog
+   * pins are not affected. Sequence: DIG_FILTER = INT_TRIG_MODE only (digital
+   * filters off, step 1), ADC_CAL = SE_DIFF bits | ADC_CAL_MODE (step 2), set
+   * ADC_CAL_TRIG, wait 10 µs, clear it (steps 3-5), one CONVST high-low-high
+   * pulse (step 6), wait @ref ADS9324_CFG::ADC_CAL_WAIT_MS, then poll
+   * DEVICE_STATUS.CALIB_BUSY_FLAG up to @ref ADS9324_CFG::ADC_CAL_TIMEOUT_MS
+   * (step 7). Afterwards CONVST returns low and DIG_FILTER is restored to the
+   * @ref SetOversampling setting.
+   *
+   * @ref AdcCalMode::Disabled writes ADC_CAL_MODE = 00b, which removes the
+   * ADC_CAL correction, without triggering.
+   *
+   * @param mode     What to calibrate.
+   * @param ain1_8   Input type of AIN1-8 (SE_DIFF_MODE_AIN1_8: differential or single-ended).
+   * @param ain9_16  Input type of AIN9-16 (SE_DIFF_MODE_AIN9_16).
+   * @retval true  Calibration finished (CALIB_BUSY clear); @ref GetAdcCalMode returns @p mode.
+   * @retval false Not initialized, bus error, @p mode invalid, or CALIB_BUSY still set after
+   *               the timeout.
+   */
+  bool RunAdcCalibration(AdcCalMode mode, InputType ain1_8, InputType ain9_16) noexcept;
+
+  /**
+   * @brief @ref RunAdcCalibration with the input types taken from the channel cache.
+   *
+   * A bank counts as differential when all eight of its channels are
+   * configured @ref InputType::Differential, otherwise as single-ended.
+   *
+   * @param mode What to calibrate (default: offset and gain).
+   * @return As @ref RunAdcCalibration(AdcCalMode, InputType, InputType).
+   */
+  bool RunAdcCalibration(AdcCalMode mode = AdcCalMode::OffsetAndGain) noexcept;
+
+  /** @brief ADC_CAL_MODE of the last successful @ref RunAdcCalibration (Disabled after a reset). */
+  [[nodiscard]] AdcCalMode GetAdcCalMode() const noexcept {
+    return adc_cal_mode_;
+  }
+
+  /**
    * @brief Set conversion coding and rewrite GEN_CFG3.
    * @param format Two's-complement (default) or offset-binary.
    * @retval true  GEN_CFG3 updated.
@@ -492,6 +549,7 @@ private:
   ReferenceSource reference_ = ReferenceSource::RefselPin;    ///< ANA_CFG1.
   OversamplingRatio osr_ = OversamplingRatio::None;           ///< DIG_FILTER.BLK_AVG_OSR.
   OversamplingClock osr_clock_ = OversamplingClock::Internal; ///< DIG_FILTER.INT_TRIG_MODE.
+  AdcCalMode adc_cal_mode_ = AdcCalMode::Disabled;            ///< ADC_CAL.ADC_CAL_MODE.
   bool avg_mode_ready_ =
       false; ///< GEN_CFG5 AVG_MODE_OVR_EN / AVG_MODE written since the last reset.
   ChannelConfig ch_cfg_[kNumChannels]{};  ///< Last PGA programming per channel.

@@ -44,6 +44,8 @@ public:
   long fail_count = 0;
 
   int sw_resets = 0;
+  /// DEVICE_STATUS reads that still report CALIB_BUSY_FLAG (ADC_CAL running).
+  long calib_busy_reads = 0;
 
   MockBus() {
     resetRegisters();
@@ -90,7 +92,13 @@ public:
 
       uint32_t reply = 0;
       if (pending_read && addr == 0 && data == 0) {
-        reply = static_cast<uint32_t>(mem[bank_index][pending_read_addr]) << 8;
+        uint16_t value = mem[bank_index][pending_read_addr];
+        if (bank_index == 0 && pending_read_addr == ads9324::reg::DEVICE_STATUS &&
+            calib_busy_reads > 0) {
+          --calib_busy_reads;
+          value = static_cast<uint16_t>(value | ads9324::reg::DEVICE_STATUS_CALIB_BUSY);
+        }
+        reply = static_cast<uint32_t>(value) << 8;
         pending_read = false;
       } else if (addr == ads9324::reg::BANK_SEL) {
         writes.push_back(word);

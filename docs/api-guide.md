@@ -8,12 +8,13 @@ the [port](porting.md). The [API reference](api-reference.md) lists every member
 
 ## The shape of the API
 
-One `ADS9324<Spi, Host>` object per chip. Its methods fall into five groups:
+One `ADS9324<Spi, Host>` object per chip. Its methods fall into these groups:
 
 | Group | Methods |
 | --- | --- |
 | Bring-up | `EnsureInitialized()`, `IsInitialized()`, `SoftwareReset()`, `HardwareReset()`, `ReadDeviceId()`, `SetReference()` |
 | Channels | `ConfigureChannel()`, `ConfigureAllChannels()`, `GetChannelConfig()`, `SetChannelOffset()`, `SetChannelGain()` |
+| Calibration | `SetSystemCorrection()`, `RunAdcCalibration()`, `GetAdcCalMode()`, `OffsetCorrectionFor()`, `GainCorrectionFor()` |
 | Data interface | `SetDataFormat()`, `GetDataFormat()`, `SetDigitalInterface()`, `SetChannelCountMode()`, `SetOversampling()` |
 | Pins and power | `SetAlarmPin()`, `ProgramWindowComparator()`, `SetPowerDown()` |
 | Reading | `ReadSnapshot()`, `ReadChannel()`, `CountToVoltage()`, `GetDiagnostics()` |
@@ -82,6 +83,35 @@ explains the encodings.
 The offset is in quarter LSBs, −512 to +511 (−128 to +127.75 LSB); the gain is signed, −8192 to +8191, and
 multiplies by `1 + GAN / 65536` (about ±12.5 %). A value outside its field returns `false` and writes nothing.
 Measure with the real source impedance connected: the correction is for the whole signal chain.
+
+To compute the values from two measurements, `OffsetCorrectionFor(measured, expected)` returns
+`4 × (expected − measured)` (Equation 1) and `GainCorrectionFor(measured, expected)` returns
+`(expected − measured) / measured × 65536`, rounded (Equation 3). Measure the gain point after the offset is
+corrected, with the gain correction at 0:
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:system-cal"
+```
+
+`SetSystemCorrection(offset, gain)` switches the application of all offset or all gain registers on or off
+(`OFS_CORR_DIS` and `GAN_CORR_DIS` in the GEN_CFG5 register of both channel banks, sections 7.3.8 and 7.3.9); both are
+on at reset and the register values are kept while off.
+
+### On-chip ADC calibration
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:adc-cal"
+```
+
+`RunAdcCalibration(mode)` runs the chip's `ADC_CAL` module once in single-shot mode (section 7.3.10). It turns the
+digital filters off and sets `INT_TRIG_MODE`, writes `ADC_CAL_MODE` and the bank input types (`SE_DIFF_MODE_AIN1_8`,
+`SE_DIFF_MODE_AIN9_16`), pulses `ADC_CAL_TRIG` for 10 µs, gives CONVST one high-low-high pulse, waits
+`ADC_CAL_WAIT_MS` (125 ms, Table 7-7) and polls `CALIB_BUSY_FLAG` in DEVICE_STATUS for up to
+`ADC_CAL_TIMEOUT_MS`. Then CONVST returns low and the oversampling filter is restored. A bank counts as
+differential when all its eight channels are; `RunAdcCalibration(mode, ain1_8, ain9_16)` sets the two input types
+yourself. `AdcCalMode::Disabled` removes the correction. A reset sets `ADC_CAL` back to disabled, so run it again
+after `SoftwareReset()` or `HardwareReset()`. Use it when you do not calibrate the system yourself; it reduces the
+offset error from about ±30 LSB to ±8 LSB in the datasheet's example.
 
 ## Read
 

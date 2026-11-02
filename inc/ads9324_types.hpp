@@ -237,6 +237,56 @@ enum class OversamplingClock : uint8_t {
 }
 
 /**
+ * @brief What the on-chip ADC_CAL module calibrates (ADC_CAL_MODE[1:0], SBASB22 Table 8-16).
+ */
+enum class AdcCalMode : uint8_t {
+  Disabled = 0,      ///< 00b: ADC_CAL off, no ADC_CAL correction applied (reset default).
+  Offset = 1,        ///< 01b: offset error.
+  Gain = 2,          ///< 10b: gain error.
+  OffsetAndGain = 3, ///< 11b: offset and gain error.
+};
+
+/**
+ * @brief OFS_AINn value that moves a measured code onto the expected one (SBASB22 Equation 1).
+ *
+ * The chip adds OFS_AINn in quarter LSBs: `output = (code × 4 + OFS) / 4`.
+ *
+ * @param measured Code read with the reference input applied (offset correction at 0).
+ * @param expected Code the input should give (0 for a shorted differential input).
+ * @return `4 × (expected − measured)`; outside @ref kOffsetMin to @ref kOffsetMax the error is too
+ *         large for the register and @ref ads9324::ADS9324::SetChannelOffset rejects it.
+ */
+[[nodiscard]] inline constexpr int32_t OffsetCorrectionFor(int32_t measured,
+                                                           int32_t expected) noexcept {
+  return 4 * (expected - measured);
+}
+
+/**
+ * @brief GAN_AINn value that scales a measured code onto the expected one (SBASB22 Equation 3).
+ *
+ * `GAN = (expected − measured) / measured × 65536`, rounded to nearest, for two's-complement
+ * codes (measure near full scale with the gain correction at 0, after the offset correction).
+ *
+ * @param measured Two's-complement code read for a known input (not 0).
+ * @param expected Code that input should give.
+ * @return The correction; 0 when @p measured is 0. Outside @ref kGainMin to @ref kGainMax the
+ *         error is too large for the register and @ref ads9324::ADS9324::SetChannelGain rejects it.
+ */
+[[nodiscard]] inline constexpr int32_t GainCorrectionFor(int32_t measured,
+                                                         int32_t expected) noexcept {
+  if (measured == 0) {
+    return 0;
+  }
+  const int64_t num = static_cast<int64_t>(expected - measured) * 65536;
+  int64_t q = num / measured; // truncates toward zero
+  const int64_t r = num % measured;
+  if (2 * (r < 0 ? -r : r) >= (measured < 0 ? -static_cast<int64_t>(measured) : measured)) {
+    q += ((num < 0) != (measured < 0)) ? -1 : 1; // round half away from zero
+  }
+  return static_cast<int32_t>(q);
+}
+
+/**
  * @brief Function muxed onto the DRDY/ALARM pin (DRDY_ALARM_SEL[3:0]).
  */
 enum class AlarmPinMode : uint8_t {

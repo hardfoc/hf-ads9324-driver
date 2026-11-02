@@ -76,6 +76,34 @@ bool calibrate_task(Adc& adc) {
   return true;
 }
 
+bool system_cal_task(Adc& adc) {
+  // --8<-- [start:system-cal]
+  // AIN1 shorted reads +10 LSB; with 4.5 V applied on the ±5 V range it reads 29000 instead of
+  // 29491 (4.5 / 5 * 32768). The helpers apply Equations 1 and 3 of the datasheet.
+  const int32_t ofs = ads9324::OffsetCorrectionFor(10, 0);           // -40 quarter LSBs
+  const int32_t gan = ads9324::GainCorrectionFor(29000 - 10, 29491); // measured after the offset
+  if (ofs < ads9324::kOffsetMin || ofs > ads9324::kOffsetMax || gan < ads9324::kGainMin ||
+      gan > ads9324::kGainMax) {
+    return false; // error too large for the registers
+  }
+  return adc.SetChannelOffset(0, static_cast<int16_t>(ofs)) &&
+         adc.SetChannelGain(0, static_cast<int16_t>(gan));
+  // --8<-- [end:system-cal]
+}
+
+bool adc_cal_task(Adc& adc) {
+  // --8<-- [start:adc-cal]
+  // On-chip ADC_CAL: the inputs are disconnected for about 125 ms while the chip measures its own
+  // offset and gain error. Run it after configuring the channels (it reads their input types).
+  if (!adc.RunAdcCalibration(ads9324::AdcCalMode::OffsetAndGain)) {
+    return false; // bus error, or CALIB_BUSY did not clear
+  }
+  // The correction stays applied until a reset or until it is switched off:
+  // adc.RunAdcCalibration(ads9324::AdcCalMode::Disabled);
+  // --8<-- [end:adc-cal]
+  return true;
+}
+
 void read_task(Adc& adc) {
   // --8<-- [start:read]
   const ads9324::Snapshot snap = adc.ReadSnapshot();   // all 16 channels, same sampling instant

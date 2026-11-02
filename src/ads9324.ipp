@@ -159,6 +159,7 @@ bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
   reference_ = ReferenceSource::RefselPin;
   osr_ = OversamplingRatio::None;
   osr_clock_ = OversamplingClock::Internal;
+  adc_cal_mode_ = AdcCalMode::Disabled;
   avg_mode_ready_ = false;
   for (uint8_t i = 0; i < kNumChannels; ++i) {
     ch_cfg_[i] = ChannelConfig{};
@@ -408,6 +409,96 @@ bool ADS9324<SpiType, HostType>::SetOversampling(OversamplingRatio osr,
   }
   osr_ = osr;
   osr_clock_ = clock;
+  return true;
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetSystemCorrection(bool offset, bool gain) noexcept {
+  uint16_t v = 0;
+  if (!offset) {
+    v = static_cast<uint16_t>(v | reg::CH_GEN_CFG5_OFS_CORR_DIS);
+  }
+  if (!gain) {
+    v = static_cast<uint16_t>(v | reg::CH_GEN_CFG5_GAN_CORR_DIS);
+  }
+  return writeRegister(RegisterBank::Ain1_8, reg::CH_GEN_CFG5, v) &&
+         writeRegister(RegisterBank::Ain9_16, reg::CH_GEN_CFG5, v);
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::RunAdcCalibration(AdcCalMode mode) noexcept {
+  bool diff[2] = {true, true};
+  for (uint8_t ch = 0; ch < kNumChannels; ++ch) {
+    if (ch_cfg_[ch].type != InputType::Differential) {
+      diff[ch / 8u] = false;
+    }
+  }
+  const auto type = [](bool d) { return d ? InputType::Differential : InputType::SingleEnded; };
+  return RunAdcCalibration(mode, type(diff[0]), type(diff[1]));
+}
+
+/**
+ * Single-shot ADC_CAL, SBASB22 section 7.3.10 steps 1-7. CONVST idles low in
+ * this driver, so step 6 ("a low-high pulse sequence, end state high, at least
+ * one falling edge") is high, low, high; CONVST goes back low at the end.
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::RunAdcCalibration(AdcCalMode mode, InputType ain1_8,
+                                                   InputType ain9_16) noexcept {
+  if (!initialized_ ||
+      static_cast<uint8_t>(mode) > static_cast<uint8_t>(AdcCalMode::OffsetAndGain)) {
+    return false;
+  }
+  const uint16_t cal =
+      reg::AdcCalValue(mode, ain1_8 == InputType::Differential, ain9_16 == InputType::Differential);
+  if (mode == AdcCalMode::Disabled) {
+    if (!writeRegister(RegisterBank::Common, reg::ADC_CAL, cal)) {
+      return false;
+    }
+    adc_cal_mode_ = mode;
+    return true;
+  }
+  // Step 1 (and "disable digital filters" before ADC_CAL): only INT_TRIG_MODE set.
+  if (!writeDigFilter(reg::DIG_FILTER_INT_TRIG_MODE, false) ||
+      !writeRegister(RegisterBank::Common, reg::ADC_CAL, cal) ||
+      !writeRegister(RegisterBank::Common, reg::ADC_CAL,
+                     static_cast<uint16_t>(cal | reg::ADC_CAL_TRIG))) {
+    return false;
+  }
+  host_.DelayUs(10);
+  if (!writeRegister(RegisterBank::Common, reg::ADC_CAL, cal)) {
+    return false;
+  }
+  host_.ConvstWrite(true);
+  host_.DelayUs(1);
+  host_.ConvstWrite(false);
+  host_.DelayUs(1);
+  host_.ConvstWrite(true);
+
+  host_.DelayMs(ADS9324_CFG::ADC_CAL_WAIT_MS);
+  bool done = false;
+  bool bus_ok = true;
+  for (uint32_t ms = 0; ms <= ADS9324_CFG::ADC_CAL_TIMEOUT_MS; ++ms) {
+    uint16_t status = 0;
+    if (!readRegister(RegisterBank::Common, reg::DEVICE_STATUS, status)) {
+      bus_ok = false;
+      break;
+    }
+    if ((status & reg::DEVICE_STATUS_CALIB_BUSY) == 0) {
+      done = true;
+      break;
+    }
+    host_.DelayMs(1);
+  }
+  host_.ConvstWrite(false);
+  // Put the oversampling filter back (SYSREF pulse resets its accumulator).
+  const bool restored = bus_ok && writeDigFilter(reg::DigFilterValue(osr_, osr_clock_),
+                                                 osr_ != OversamplingRatio::None);
+  if (!done || !restored) {
+    ++errors_;
+    return false;
+  }
+  adc_cal_mode_ = mode;
   return true;
 }
 

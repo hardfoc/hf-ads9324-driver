@@ -393,6 +393,110 @@ void test_oversampling() {
   CHECK(slow.delayed_us - waited >= 4u * ADS9324_CFG::DRDY_TIMEOUT_US);
 }
 
+void test_calibration() {
+  using namespace ads9324;
+  // Host-side helpers for the system corrections (SBASB22 Equations 1 and 3).
+  static_assert(OffsetCorrectionFor(10, 0) == -40);
+  static_assert(OffsetCorrectionFor(-3, 0) == 12);
+  static_assert(GainCorrectionFor(31130, 32768) == 3448); // 3448.38
+  static_assert(GainCorrectionFor(1050, 1000) == -3121);  // -3120.76
+  static_assert(GainCorrectionFor(-1000, -1050) == 3277); // 3276.8
+  static_assert(GainCorrectionFor(0, 5) == 0);
+  // ADC_CAL fields, Table 8-16.
+  static_assert(reg::AdcCalValue(AdcCalMode::OffsetAndGain, true, false) == 0x2003);
+  static_assert(reg::AdcCalValue(AdcCalMode::Gain, false, true) == 0x1002);
+
+  MockBus bus;
+  Adc adc(bus, bus);
+  CHECK(!adc.RunAdcCalibration()); // not initialized: nothing sent
+  CHECK(bus.writes.empty());
+  CHECK(adc.EnsureInitialized());
+  CHECK(adc.GetAdcCalMode() == AdcCalMode::Disabled);
+
+  // System correction enables: OFS_CORR_DIS / GAN_CORR_DIS in GEN_CFG5 (0x37) of both banks.
+  CHECK(adc.SetSystemCorrection(false, true));
+  CHECK(bus.mem[1][reg::CH_GEN_CFG5] == 0x0002 && bus.mem[2][reg::CH_GEN_CFG5] == 0x0002);
+  CHECK(adc.SetSystemCorrection(true, false));
+  CHECK(bus.mem[1][reg::CH_GEN_CFG5] == 0x0001 && bus.mem[2][reg::CH_GEN_CFG5] == 0x0001);
+  CHECK(adc.SetSystemCorrection(true, true));
+  CHECK(bus.mem[1][reg::CH_GEN_CFG5] == 0x0000 && bus.mem[2][reg::CH_GEN_CFG5] == 0x0000);
+
+  // AIN10 single-ended: bank AIN9-16 is calibrated as single-ended, AIN1-8 as differential.
+  ChannelConfig se = Adc::DefaultChannelConfig();
+  se.type = InputType::SingleEnded;
+  CHECK(adc.ConfigureChannel(9, se));
+
+  std::size_t mark = bus.writes.size();
+  int pulses = bus.convst_pulses;
+  uint64_t t0 = bus.delayed_us;
+  bus.calib_busy_reads = 3; // still running after the 125 ms wait: poll
+  CHECK(adc.RunAdcCalibration());
+  CHECK(bus.calib_busy_reads == 0);
+  CHECK(adc.GetAdcCalMode() == AdcCalMode::OffsetAndGain);
+  // Section 7.3.10 single-shot sequence: INT_TRIG_MODE = 1 with the filters off, ADC_CAL_MODE,
+  // ADC_CAL_TRIG 0 -> 1, >= 10 us, back to 0.
+  const std::vector<uint16_t> cal = writes_to(bus, reg::ADC_CAL, mark);
+  CHECK(cal.size() == 3 && cal[0] == 0x2003 && cal[1] == 0x2103 && cal[2] == 0x2003);
+  const std::vector<uint16_t> filt = writes_to(bus, reg::DIG_FILTER, mark);
+  CHECK(filt.size() == 2 && filt[0] == 0x0002 && filt[1] == 0x0000); // restored: no averaging
+  std::size_t first_filter = 0;
+  std::size_t first_cal = 0;
+  std::size_t trig = 0;
+  for (std::size_t i = bus.writes.size(); i-- > mark;) {
+    const auto a = static_cast<uint8_t>(bus.writes[i] >> 16);
+    if (a == reg::DIG_FILTER) {
+      first_filter = i;
+    } else if (a == reg::ADC_CAL) {
+      first_cal = i;
+      if ((bus.writes[i] & reg::ADC_CAL_TRIG) != 0) {
+        trig = i;
+      }
+    }
+  }
+  CHECK(first_filter < first_cal);
+  CHECK(bus.write_times[trig + 1] - bus.write_times[trig] >= 10u);
+  // Step 6: one falling edge, end high; then back to the driver's idle low (a second edge).
+  CHECK(bus.convst_pulses == pulses + 2);
+  CHECK(!bus.convst);
+  // Step 7: T_WAIT = 125 ms (Table 7-7), then the three busy polls 1 ms apart.
+  CHECK(bus.delayed_us - t0 >= 128000u);
+
+  // With averaging on, the filter is restored with an accumulator reset.
+  CHECK(adc.SetOversampling(OversamplingRatio::X8));
+  mark = bus.writes.size();
+  CHECK(adc.RunAdcCalibration(AdcCalMode::Gain, InputType::SingleEnded, InputType::Differential));
+  CHECK(writes_to(bus, reg::ADC_CAL, mark).front() == 0x1002);
+  const std::vector<uint16_t> back = writes_to(bus, reg::DIG_FILTER, mark);
+  CHECK(back.size() == 4 && back[0] == 0x0002 && back[1] == 0x0042 && back[2] == 0x0043 &&
+        back[3] == 0x0042);
+
+  // Never finishes: false, mode unchanged, CONVST low, filter restored, error counted.
+  const uint32_t errors = adc.GetDiagnostics().errors;
+  bus.calib_busy_reads = 1000000;
+  CHECK(!adc.RunAdcCalibration(AdcCalMode::Offset));
+  CHECK(adc.GetAdcCalMode() == AdcCalMode::Gain);
+  CHECK(!bus.convst);
+  CHECK(bus.mem[0][reg::DIG_FILTER] == 0x0042);
+  CHECK(adc.GetDiagnostics().errors == errors + 1);
+  bus.calib_busy_reads = 0;
+
+  // Disabled: ADC_CAL_MODE = 00b, no trigger, no CONVST.
+  mark = bus.writes.size();
+  pulses = bus.convst_pulses;
+  CHECK(adc.RunAdcCalibration(AdcCalMode::Disabled, InputType::Differential,
+                              InputType::Differential));
+  CHECK(writes_to(bus, reg::ADC_CAL, mark) == std::vector<uint16_t>{0x3000});
+  CHECK(bus.convst_pulses == pulses);
+  CHECK(adc.GetAdcCalMode() == AdcCalMode::Disabled);
+
+  CHECK(!adc.RunAdcCalibration(static_cast<AdcCalMode>(4)));
+  bus.failNext(1);
+  CHECK(!adc.RunAdcCalibration());
+  CHECK(adc.RunAdcCalibration());
+  CHECK(adc.SoftwareReset());
+  CHECK(adc.GetAdcCalMode() == AdcCalMode::Disabled); // ADC_CAL is back at 0x0000
+}
+
 }  // namespace
 
 int main() {
@@ -404,6 +508,7 @@ int main() {
   test_signed_gain_and_offset();
   test_hardware_reset_and_reference();
   test_oversampling();
+  test_calibration();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

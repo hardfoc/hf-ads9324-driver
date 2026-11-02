@@ -21,6 +21,8 @@ Each macro below is `CONFIG_ADS9324_` followed by the name in the first column.
 | `RESET_DELAY_MS` | Wait after the software reset, in ms; 1 |
 | `RESET_PULSE_US` | How long `HardwareReset()` holds RESET low, in µs; 10 (the datasheet gives no minimum) |
 | `DRDY_TIMEOUT_US` | DRDY poll budget after CONVST, in 1 µs steps, times *N* with internal-clock oversampling; 1000 |
+| `ADC_CAL_WAIT_MS` | Wait after triggering `RunAdcCalibration()` before checking CALIB_BUSY, in ms; 125 (T<sub>WAIT</sub>, Table 7-7) |
+| `ADC_CAL_TIMEOUT_MS` | Further CALIB_BUSY poll budget, in 1 ms steps; 125 |
 | `CONV_FALLBACK_US` | Wait after CONVST when `HasDrdy()` is `false`, in µs, times *N* with internal-clock oversampling; 10 |
 
 `EnsureInitialized()` and `SoftwareReset()` write the range, input type and bandwidth defaults to all 16 channels

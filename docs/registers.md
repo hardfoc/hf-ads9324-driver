@@ -59,8 +59,10 @@ Common bank:
 | `0x0C` | `DRDY_ALARM_SEL` | `ALRM_POL` (4), `DRDY_ALRM_SEL` (3:0) in `SetAlarmPin()` |
 | `0x10` | `ANA_CFG1` | `REFSEL_CTRL_DIS` (1), `EXT_REF_EN` (0) in `SetReference()` |
 | `0x11` | `ANA_CFG2` | `ADC_CH_SEL` (6:4), `ADC_NUM_SEL` (3:2) in `SetChannelCountMode()` |
+| `0x12` | `ADC_CAL` | `SE_DIFF_MODE_AIN1_8` (13), `SE_DIFF_MODE_AIN9_16` (12), `ADC_CAL_TRIG` (8), `ADC_CAL_MODE` (1:0) in `RunAdcCalibration()` |
 | `0x14` | `DIG_FILTER` | `BLK_AVG_OSR` (7:4), `INT_TRIG_MODE` (1), `DIG_FILT_SYSREF` (0) in `SetOversampling()` |
 | `0x15` | `GEN_CFG5` | `AVG_MODE_OVR_EN` (1), then `AVG_MODE` (0), before the first `SetOversampling()` |
+| `0x1D` | `DEVICE_STATUS` | `CALIB_BUSY_FLAG` (3) polled by `RunAdcCalibration()` |
 | `0x21` | `DEVICE_ID` | Read by `ReadDeviceId()`; `0x0004` on an ADS9324 |
 
 </div>
@@ -77,10 +79,11 @@ Channel banks (the same address in AIN1-8 and AIN9-16):
 | `0x19` to `0x20` | `GAN_AINn` | 14-bit gain |
 | `0x21` | `DWC_CFG` | Window-comparator enable bit per channel |
 | `0x22` to `0x29` | `DWC_TH_AINn` | High threshold (15:8), low threshold (7:0) |
+| `0x37` | `GEN_CFG5` | `OFS_CORR_DIS` (1), `GAN_CORR_DIS` (0) in `SetSystemCorrection()` |
 
 </div>
 
-The other registers (FIR and moving-average filters, phase delay, ADC self-calibration, test patterns)
+The other registers (FIR and moving-average filters, phase delay, test patterns)
 have addresses in `ads9324_registers.hpp` but no driver call. [PGA and calibration](pga-and-calibration.md)
 explains the channel registers.
 

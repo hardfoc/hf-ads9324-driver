@@ -86,11 +86,9 @@ nothing.
 ## Gain correction
 
 `SetChannelGain(channel, gan)` writes the 14-bit two's-complement `GAN_AINn` register; `gan` is a signed
-`int16_t`. The chip multiplies the
-offset-corrected code by `1 + GAN / 65536` (register description of `GAN_AINn`, Equation 2):
+`int16_t`. The chip multiplies the offset-corrected code by `1 + GAN / 65536` (register description of
+`GAN_AINn`, Equation 2):
 
-| `GAN` | Multiplier |
-| --- | --- |
 | `gan` | `GAN` (register) | Multiplier |
 | --- | --- | --- |
 | 0 | `0x0000` | 1.000000 (reset value) |
@@ -107,5 +105,18 @@ write nothing; pass the signed value, not the register pattern (−3277, not `0x
 ## On-chip calibration
 
 The ADS9324 can also measure and correct its own offset and gain (`ADC_CAL`, section 7.3.10), reducing the offset
-error from about ±30 LSB to ±8 LSB in the datasheet's example. The driver does not run it; the register address is
-`reg::ADC_CAL` if you write the sequence yourself.
+error from about ±30 LSB to ±8 LSB in the datasheet's example. `RunAdcCalibration()` runs it once in single-shot
+mode: the inputs are disconnected for T<sub>WAIT</sub> = 125 ms (Table 7-7) and the correction stays applied
+until a reset or `RunAdcCalibration(AdcCalMode::Disabled)`. It is meant for systems that do not calibrate offset
+and gain themselves; with the system corrections above it is not needed. The
+[API guide](api-guide.md#on-chip-adc-calibration) has the sequence.
+
+| `AdcCalMode` | `ADC_CAL_MODE` | Calibrates |
+| --- | --- | --- |
+| `Disabled` (reset) | `00b` | Nothing; no ADC_CAL correction applied |
+| `Offset` | `01b` | Offset error |
+| `Gain` | `10b` | Gain error |
+| `OffsetAndGain` | `11b` | Both |
+
+`SetSystemCorrection(offset, gain)` switches the `OFS_AINn` and `GAN_AINn` corrections of all channels on or off
+(`OFS_CORR_DIS`, `GAN_CORR_DIS` in each bank's GEN_CFG5, Tables 8-70 and 8-121).

@@ -21,6 +21,14 @@ code that used the affected API.
   section 7.3.11.2, Figure 7-14, Table 7-8, Table 8-17, Table 8-18). `ReadSnapshot()` pulses CONVST *N* times with the external
   clock and scales its DRDY timeout and fallback wait by *N* with the internal clock.
 
+- `RunAdcCalibration(AdcCalMode[, InputType, InputType])` / `GetAdcCalMode()`: runs the on-chip ADC_CAL module in
+  single-shot mode (offset, gain or both; SBASB22 section 7.3.10 steps 1 to 7, Table 7-7, Table 8-16), polling
+  `CALIB_BUSY_FLAG` (Table 8-19) and restoring the oversampling filter afterwards. New `ADC_CAL_WAIT_MS` (125) and
+  `ADC_CAL_TIMEOUT_MS` (125) settings.
+- `SetSystemCorrection(offset, gain)`: `OFS_CORR_DIS` / `GAN_CORR_DIS` in the GEN_CFG5 register of both channel
+  banks (SBASB22 sections 7.3.8 and 7.3.9, Table 8-70, Table 8-121). `OffsetCorrectionFor()` and
+  `GainCorrectionFor()` compute `OFS_AINn` and `GAN_AINn` from a measurement (Equations 1 and 3).
+
 - Host-test workflow (`ci-host-tests.yml`): GCC and Clang build and run the protocol tests and compile the
   documentation's code.
 
