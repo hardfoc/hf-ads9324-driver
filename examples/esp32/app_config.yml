@@ -11,8 +11,8 @@ metadata:
 apps:
   driver_integration_test:
     description: >
-      Integration test suite: DEVICE_ID, PGA, snapshots, calibration
-      registers and power-down, with a pass / fail summary
+      Integration test suite: DEVICE_ID, PGA, snapshots, oversampling,
+      offset / gain registers, ADC_CAL and power-down, with a pass / fail summary
     source_file: "driver_integration_test.cpp"
     category: "test"
     idf_versions: ["release/v5.5"]
@@ -30,7 +30,9 @@ apps:
       - "1-lane SDOUT init sequence (SBASB22 Table 7-18)"
       - "Per-channel PGA range and input type"
       - "CONVST + snapshot of 16 channels"
-      - "Offset and gain calibration registers"
+      - "Offset and gain calibration registers, system-correction enables"
+      - "On-chip ADC_CAL (single-shot, SBASB22 section 7.3.10)"
+      - "16x block-average oversampling"
       - "Digital window comparator"
       - "Standby / power-down"
 
@@ -40,17 +42,17 @@ apps:
     category: "example"
     idf_versions: ["release/v5.5"]
     build_types: ["Debug", "Release"]
-    ci_enabled: false
+    ci_enabled: true
     featured: true
     hardware_required: true
 
   pga_offset:
-    description: "Different ranges per channel, plus offset and gain registers"
+    description: "Different ranges per channel, offset and gain correction, one snapshot for both"
     source_file: "pga_offset_example.cpp"
     category: "example"
     idf_versions: ["release/v5.5"]
     build_types: ["Debug", "Release"]
-    ci_enabled: false
+    ci_enabled: true
     featured: true
     hardware_required: true
 

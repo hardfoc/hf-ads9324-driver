@@ -17,7 +17,14 @@ ctest --test-dir build-host --output-on-failure
 
 | File | Covers |
 | --- | --- |
-| [`tests/host/test_ads9324_protocol.cpp`](../tests/host/test_ads9324_protocol.cpp) | Frame packing, GEN_CFG3 value, PGA nibble encoding, bank mapping, the initialisation sequence and DEVICE_ID, channel configuration, offset and gain registers, power-down, snapshot unpacking, `ReadChannel()` errors |
+| [`tests/host/test_ads9324_protocol.cpp`](../tests/host/test_ads9324_protocol.cpp) | Frame packing, GEN_CFG3 value, PGA nibble encoding, bank mapping, the initialisation sequence and DEVICE_ID, channel configuration, offset and gain registers, power-down, snapshot unpacking and the reduced channel-count layouts, `ReadChannel()` errors, bus-error propagation, software and hardware reset, reference selection, oversampling, ADC_CAL and the system-correction bits |
+| [`tests/host/test_ads9324_config_defaults.cpp`](../tests/host/test_ads9324_config_defaults.cpp) | Built with non-default `CONFIG_ADS9324_*` values: initialisation and reset write them to the chip |
+| [`tests/host/test_ads9324_version.cpp`](../tests/host/test_ads9324_version.cpp) | `GetDriverVersion*()` equal the project version, and follow a generated header with another version |
+| [`tests/check_version_copy.cmake`](../tests/check_version_copy.cmake) | `idf_component.yml` and `Doxyfile` carry the project version |
+| [`tests/install_consumer.cmake`](../tests/install_consumer.cmake) | `cmake --install` into the build tree, then a [`find_package()` consumer](../tests/install_consumer/main.cpp) that includes every public header and links `hf::ads9324` |
+
+The build also compiles the protocol test at `-O2 -Werror` (target `hf_ads9324_optimised_build`, never run): GCC
+reports array-bounds and similar warnings only with optimisation, and the ESP-IDF Release builds treat them as errors.
 
 ## Documentation snippets
 

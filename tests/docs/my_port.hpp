@@ -14,7 +14,8 @@
 #include <cstdint>
 
 // Platform hooks: your SDK's calls. Declared only, so the docs build checks the port compiles.
-void platform_spi_transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) noexcept;  // CS low .. CS high
+bool platform_spi_transfer(const uint8_t* tx, uint8_t* rx,
+                           std::size_t len) noexcept; // CS low .. CS high
 void platform_gpio_write(int gpio, bool level) noexcept;
 bool platform_gpio_read(int gpio) noexcept;
 void platform_delay_us(uint32_t us) noexcept;
@@ -24,8 +25,9 @@ void platform_delay_us(uint32_t us) noexcept;
 class MySpi : public ads9324::SpiInterface<MySpi> {
 public:
   // tx == nullptr: clock out zeros. rx == nullptr: discard what arrives on SDOUT.
-  void transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
-    platform_spi_transfer(tx, rx, len);
+  // Return false on a bus error: the driver then fails the call that sent the frame.
+  bool transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+    return platform_spi_transfer(tx, rx, len);
   }
 };
 
@@ -34,11 +36,15 @@ class MyHost : public ads9324::HostInterface<MyHost> {
 public:
   static constexpr int kConvst = 3;   // GPIO wired to CONVST (pin 50)
   static constexpr int kDrdy = 11;    // GPIO wired to DRDY/ALARM (pin 49)
+  static constexpr int kReset = 12;   // GPIO wired to RESET (pin 32); optional
 
   void ConvstWrite(bool high) { platform_gpio_write(kConvst, high); }
   bool DrdyRead() { return platform_gpio_read(kDrdy); }   // high = conversion done
   bool HasDrdy() const { return true; }                   // false: fixed wait instead
   void DelayUs(uint32_t us) { platform_delay_us(us); }
   void DelayMs(uint32_t ms) { platform_delay_us(ms * 1000U); }
+  void ResetWrite(bool high) {
+    platform_gpio_write(kReset, high);
+  } // optional: HardwareReset()
 };
 // --8<-- [end:port]

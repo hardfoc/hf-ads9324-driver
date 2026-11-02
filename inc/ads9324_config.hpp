@@ -28,24 +28,29 @@ namespace ADS9324_CFG {
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus12V5;
 #elif defined(CONFIG_ADS9324_RANGE_10V)
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus10V;
+#elif defined(CONFIG_ADS9324_RANGE_6V25)
+inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus6V25;
 #elif defined(CONFIG_ADS9324_RANGE_2V5)
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus2V5;
 #else
-/** @brief Default PGA full-scale applied to every channel at construction. */
+/** @brief Default PGA full-scale written to every channel by EnsureInitialized() / SoftwareReset().
+ */
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus5V;
 #endif
 
 #ifdef CONFIG_ADS9324_SINGLE_ENDED
 inline constexpr ads9324::InputType DEFAULT_INPUT_TYPE = ads9324::InputType::SingleEnded;
 #else
-/** @brief Default PGA topology (differential unless CONFIG_ADS9324_SINGLE_ENDED). */
+/** @brief Default PGA topology written at initialisation (differential unless
+ * CONFIG_ADS9324_SINGLE_ENDED). */
 inline constexpr ads9324::InputType DEFAULT_INPUT_TYPE = ads9324::InputType::Differential;
 #endif
 
 #ifdef CONFIG_ADS9324_PGA_WIDE
 inline constexpr ads9324::PgaBandwidth DEFAULT_BANDWIDTH = ads9324::PgaBandwidth::Wide;
 #else
-/** @brief Default analog LPF (~25.5 kHz unless CONFIG_ADS9324_PGA_WIDE). */
+/** @brief Default analog LPF written at initialisation (~25.5 kHz unless CONFIG_ADS9324_PGA_WIDE).
+ */
 inline constexpr ads9324::PgaBandwidth DEFAULT_BANDWIDTH = ads9324::PgaBandwidth::Low;
 #endif
 
@@ -81,6 +86,18 @@ inline constexpr uint32_t RESET_DELAY_MS = CONFIG_ADS9324_RESET_DELAY_MS;
 inline constexpr uint32_t RESET_DELAY_MS = 1;
 #endif
 
+#ifdef CONFIG_ADS9324_RESET_PULSE_US
+inline constexpr uint32_t RESET_PULSE_US = CONFIG_ADS9324_RESET_PULSE_US;
+#else
+/**
+ * @brief How long @ref ads9324::ADS9324::HardwareReset holds RESET low, in µs.
+ *
+ * SBASB22 gives no minimum low time for the asynchronous RESET input (§7.4.1);
+ * 10 µs is far above any digital reset filter.
+ */
+inline constexpr uint32_t RESET_PULSE_US = 10;
+#endif
+
 #ifdef CONFIG_ADS9324_DRDY_TIMEOUT_US
 inline constexpr uint32_t DRDY_TIMEOUT_US = CONFIG_ADS9324_DRDY_TIMEOUT_US;
 #else
@@ -93,6 +110,24 @@ inline constexpr uint32_t CONV_FALLBACK_US = CONFIG_ADS9324_CONV_FALLBACK_US;
 #else
 /** @brief Used when @ref ads9324::HostInterface::HasDrdy is false. */
 inline constexpr uint32_t CONV_FALLBACK_US = 10;
+#endif
+
+#ifdef CONFIG_ADS9324_ADC_CAL_WAIT_MS
+inline constexpr uint32_t ADC_CAL_WAIT_MS = CONFIG_ADS9324_ADC_CAL_WAIT_MS;
+#else
+/**
+ * @brief Wait after triggering single-shot ADC_CAL before checking CALIB_BUSY, in ms.
+ *
+ * T<sub>WAIT</sub> = 125 ms with INT_TRIG_MODE = 1 (SBASB22 Table 7-7, §7.3.10 step 7).
+ */
+inline constexpr uint32_t ADC_CAL_WAIT_MS = 125;
+#endif
+
+#ifdef CONFIG_ADS9324_ADC_CAL_TIMEOUT_MS
+inline constexpr uint32_t ADC_CAL_TIMEOUT_MS = CONFIG_ADS9324_ADC_CAL_TIMEOUT_MS;
+#else
+/** @brief Further CALIB_BUSY poll budget after @ref ADC_CAL_WAIT_MS, in 1 ms steps. */
+inline constexpr uint32_t ADC_CAL_TIMEOUT_MS = 125;
 #endif
 
 /** @brief Default GEN_CFG3 lane mode — 1-lane SDOUT (supported capture path). */

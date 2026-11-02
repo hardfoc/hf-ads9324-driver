@@ -13,7 +13,8 @@ using Adc = ads9324::ADS9324<MySpi, MyHost>;
 
 bool init_task(Adc& adc) {
   // --8<-- [start:init]
-  if (!adc.EnsureInitialized()) {        // 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID
+  if (!adc.EnsureInitialized()) { // 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID, PGA
+                                  // defaults
     const uint16_t id = adc.ReadDeviceId();   // 0x0004 on a healthy ADS9324, 0 when SDOUT is dead
     std::printf("ADS9324 init failed, DEVICE_ID = 0x%04X\n", id);
     return false;
@@ -21,6 +22,19 @@ bool init_task(Adc& adc) {
   // Later calls return at once; EnsureInitialized(true) runs the whole sequence again.
   // --8<-- [end:init]
   return true;
+}
+
+bool reset_task(Adc& adc) {
+  // --8<-- [start:reset]
+  // Use the internal 4.096 V reference whatever the REFSEL pin is strapped to.
+  if (!adc.SetReference(ads9324::ReferenceSource::Internal)) {
+    return false;
+  }
+  // Pulse the RESET pin (the port has ResetWrite()); fall back to SW_RST otherwise.
+  const bool reset_ok = Adc::HasHardwareReset() ? adc.HardwareReset() : adc.SoftwareReset();
+  // Both resets return the reference to RefselPin: select it again.
+  return reset_ok && adc.SetReference(ads9324::ReferenceSource::Internal);
+  // --8<-- [end:reset]
 }
 
 bool configure_task(Adc& adc) {
@@ -47,19 +61,46 @@ bool configure_task(Adc& adc) {
 
 bool calibrate_task(Adc& adc) {
   // --8<-- [start:calibrate]
-  // Offset: 10-bit two's complement in quarter LSBs, added before the gain (Equation 1).
-  // Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.
+  // Offset: 10-bit two's complement in quarter LSBs (-512..511), added before the gain (Equation
+  // 1). Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.
   if (!adc.SetChannelOffset(0, -40)) {
     return false;
   }
 
-  // Gain: 14-bit two's complement; the chip multiplies by (1 + GAN / 65536).
-  // Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. The driver keeps the low 14 bits.
-  const int16_t gan = -328;
-  if (!adc.SetChannelGain(0, static_cast<uint16_t>(gan))) {
+  // Gain: 14-bit two's complement (-8192..8191); the chip multiplies by (1 + GAN / 65536).
+  // Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. Values outside the field return false.
+  if (!adc.SetChannelGain(0, -328)) {
     return false;
   }
   // --8<-- [end:calibrate]
+  return true;
+}
+
+bool system_cal_task(Adc& adc) {
+  // --8<-- [start:system-cal]
+  // AIN1 shorted reads +10 LSB; with 4.5 V applied on the ±5 V range it reads 29000 instead of
+  // 29491 (4.5 / 5 * 32768). The helpers apply Equations 1 and 3 of the datasheet.
+  const int32_t ofs = ads9324::OffsetCorrectionFor(10, 0);           // -40 quarter LSBs
+  const int32_t gan = ads9324::GainCorrectionFor(29000 - 10, 29491); // measured after the offset
+  if (ofs < ads9324::kOffsetMin || ofs > ads9324::kOffsetMax || gan < ads9324::kGainMin ||
+      gan > ads9324::kGainMax) {
+    return false; // error too large for the registers
+  }
+  return adc.SetChannelOffset(0, static_cast<int16_t>(ofs)) &&
+         adc.SetChannelGain(0, static_cast<int16_t>(gan));
+  // --8<-- [end:system-cal]
+}
+
+bool adc_cal_task(Adc& adc) {
+  // --8<-- [start:adc-cal]
+  // On-chip ADC_CAL: the inputs are disconnected for about 125 ms while the chip measures its own
+  // offset and gain error. Run it after configuring the channels (it reads their input types).
+  if (!adc.RunAdcCalibration(ads9324::AdcCalMode::OffsetAndGain)) {
+    return false; // bus error, or CALIB_BUSY did not clear
+  }
+  // The correction stays applied until a reset or until it is switched off:
+  // adc.RunAdcCalibration(ads9324::AdcCalMode::Disabled);
+  // --8<-- [end:adc-cal]
   return true;
 }
 
@@ -93,6 +134,36 @@ bool interface_task(Adc& adc) {
   // 24-bit words on SDOUT (48-byte bursts); the driver uses the top 16 bits as the code.
   return adc.SetDigitalInterface(ads9324::DoutLaneMode::Lane1, ads9324::DoutLength::Bits24, true);
   // --8<-- [end:interface]
+}
+
+void fewer_task(Adc& adc) {
+  // --8<-- [start:fewer]
+  // Eight channels, group 0: the chip sends AIN1..AIN4 and AIN13..AIN16 (Table 7-12).
+  if (adc.SetChannelCountMode(ads9324::ChannelCountMode::Eight, 0)) {
+    const ads9324::Snapshot snap = adc.ReadSnapshot(); // 16-byte burst
+    if (snap.ok() && snap.hasChannel(12)) {            // valid_mask = 0xF00F
+      std::printf("AIN13: %d\n", snap.count[12]);      // stored under its own channel
+    }
+  }
+  // --8<-- [end:fewer]
+}
+
+bool oversample_task(Adc& adc) {
+  // --8<-- [start:oversample]
+  // Average 16 conversions per snapshot: +6.5 dB SNR on the ±5 V range, 62.5 kSPS at most (Table
+  // 7-8). The internal clock runs the 16 conversions from one CONVST edge.
+  if (!adc.SetOversampling(ads9324::OversamplingRatio::X16)) {
+    return false;
+  }
+  const ads9324::Snapshot avg = adc.ReadSnapshot(); // averaged codes, same layout as before
+  (void)avg;
+
+  // External clock: the driver pulses CONVST 16 times, at regular intervals (best antialiasing).
+  if (!adc.SetOversampling(ads9324::OversamplingRatio::X16, ads9324::OversamplingClock::External)) {
+    return false;
+  }
+  return adc.SetOversampling(ads9324::OversamplingRatio::None); // back to one conversion
+  // --8<-- [end:oversample]
 }
 
 bool alarm_task(Adc& adc) {

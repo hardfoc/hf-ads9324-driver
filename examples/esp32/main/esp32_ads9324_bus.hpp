@@ -52,10 +52,11 @@ public:
   explicit Esp32Ads9324Bus(const Config& config) : config_(config) {}
   ~Esp32Ads9324Bus() { deinitialize(); }
 
-  void transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+  /** @return false on an ESP-IDF error (the driver then fails the call that sent the frame). */
+  bool transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
     if (!initialized_ || spi_device_ == nullptr) {
       ESP_LOGE(TAG, "SPI bus not initialized");
-      return;
+      return false;
     }
     spi_transaction_t trans = {};
     trans.length = len * 8;
@@ -64,6 +65,7 @@ public:
     esp_err_t ret = spi_device_transmit(spi_device_, &trans);
     if (ret != ESP_OK) {
       ESP_LOGE(TAG, "SPI transfer failed: %s", esp_err_to_name(ret));
+      return false;
     }
 #if ESP32_ADS9324_ENABLE_DETAILED_SPI_LOGGING
     if (len >= 3 && tx != nullptr && rx != nullptr) {
@@ -71,6 +73,7 @@ public:
                rx[2]);
     }
 #endif
+    return true;
   }
 
   void ConvstWrite(bool high) { gpio_set_level(config_.convst_pin, high ? 1 : 0); }

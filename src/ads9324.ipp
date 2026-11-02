@@ -10,9 +10,11 @@
  * obvious from the signatures: banked PGA nibble merge, two-frame register
  * read, CONVST/DRDY handshake, and SDOUT burst unpack.
  *
- * @note SPI write helpers currently treat the CRTP `transfer` as infallible
- *       (always return true). Surface transport errors when the platform
- *       adapter reports them.
+ * Bus errors: every frame goes through detail::Transfer(); when the port
+ * reports a failure the operation stops there, `bool` calls return false and
+ * the reads return Error::SpiError. Cached state (bank, data format, lanes,
+ * channel-count mode, PGA configuration) is only updated after the frames
+ * that change it on the chip were transferred.
  */
 #pragma once
 
@@ -21,53 +23,90 @@ namespace ads9324 {
 template <typename SpiType, typename HostType>
 ADS9324<SpiType, HostType>::ADS9324(SpiType& spi, HostType& host) noexcept
     : spi_(spi), host_(host) {
-  const ChannelConfig def{
-      ADS9324_CFG::DEFAULT_INPUT_TYPE,
-      ADS9324_CFG::DEFAULT_RANGE,
-      ADS9324_CFG::DEFAULT_BANDWIDTH,
-      false};
+  // Until EnsureInitialized() runs, the cache describes the chip's reset state.
   for (uint8_t i = 0; i < kNumChannels; ++i) {
-    ch_cfg_[i] = def;
+    ch_cfg_[i] = ChannelConfig{};
   }
+}
+
+/**
+ * Write the compile-time PGA defaults to every channel: per bank, the four
+ * PGA_CONFIG pair registers and PGA_BW_SEL (Tables 8-23 to 8-27), written
+ * whole since every field is known (no read-modify-write).
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::applyChannelDefaults() noexcept {
+  const ChannelConfig def = DefaultChannelConfig();
+  const uint16_t nibble = reg::EncodePgaNibble(def);
+  const auto pair = static_cast<uint16_t>((nibble << 8) | nibble);
+  uint16_t bw = 0;
+  for (uint8_t local = 0; local < 8; ++local) {
+    bw =
+        static_cast<uint16_t>(bw | ((static_cast<uint16_t>(def.bandwidth) & 0x3u) << (local * 2u)));
+  }
+  for (const RegisterBank bank : {RegisterBank::Ain1_8, RegisterBank::Ain9_16}) {
+    for (uint8_t local = 0; local < 8; local = static_cast<uint8_t>(local + 2u)) {
+      if (!writeRegister(bank, reg::PgaConfigAddr(local), pair)) {
+        return false;
+      }
+    }
+    if (!writeRegister(bank, reg::PGA_BW_SEL, bw)) {
+      return false;
+    }
+    const uint8_t first = (bank == RegisterBank::Ain1_8) ? 0u : 8u;
+    for (uint8_t ch = first; ch < first + 8u; ++ch) {
+      ch_cfg_[ch] = def;
+    }
+  }
+  return true;
 }
 
 /** Pack @p tx24 into three bytes, full-duplex, reassemble MISO MSB-first. */
 template <typename SpiType, typename HostType>
-uint32_t ADS9324<SpiType, HostType>::spiTransfer24(uint32_t tx24) noexcept {
-  uint8_t tx[3] = {
+bool ADS9324<SpiType, HostType>::spiTransfer24(uint32_t tx24, uint32_t* rx24) noexcept {
+  const uint8_t tx[3] = {
       static_cast<uint8_t>((tx24 >> 16) & 0xFFu),
       static_cast<uint8_t>((tx24 >> 8) & 0xFFu),
       static_cast<uint8_t>(tx24 & 0xFFu),
   };
   uint8_t rx[3] = {0, 0, 0};
-  spi_.transfer(tx, rx, 3);
-  return (static_cast<uint32_t>(rx[0]) << 16) | (static_cast<uint32_t>(rx[1]) << 8) |
-         static_cast<uint32_t>(rx[2]);
+  const bool ok = detail::Transfer(spi_, tx, rx, reg::kSpiFrameBytes);
+  if (rx24 != nullptr) {
+    *rx24 = ok ? ((static_cast<uint32_t>(rx[0]) << 16) | (static_cast<uint32_t>(rx[1]) << 8) |
+                  static_cast<uint32_t>(rx[2]))
+               : 0u;
+  }
+  return ok;
 }
 
-/** BANK_SEL is in the common bank; writing it switches decode for later addresses. */
+/**
+ * BANK_SEL is reachable from every bank; writing it switches decode for later
+ * addresses (§7.5.1). If the frame fails the chip's bank is unknown, so the
+ * cache is invalidated and the next access selects the bank again.
+ */
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::selectBank(RegisterBank bank) noexcept {
-  const uint32_t rx =
-      spiTransfer24(reg::PackWrite(reg::BANK_SEL, reg::BankSelectValue(bank)));
-  (void)rx;
+  if (!spiTransfer24(reg::PackWrite(reg::BANK_SEL, reg::BankSelectValue(bank)))) {
+    bank_known_ = false;
+    return false;
+  }
   current_bank_ = bank;
+  bank_known_ = true;
   return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::writeRegister(RegisterBank bank, uint8_t addr,
                                                uint16_t data) noexcept {
-  if (addr != reg::BANK_SEL && current_bank_ != bank) {
+  if (addr == reg::BANK_SEL) {
+    return selectBank(bank);
+  }
+  if (!bank_known_ || current_bank_ != bank) {
     if (!selectBank(bank)) {
       return false;
     }
   }
-  spiTransfer24(reg::PackWrite(addr, data));
-  if (addr == reg::BANK_SEL) {
-    current_bank_ = bank;
-  }
-  return true;
+  return spiTransfer24(reg::PackWrite(addr, data));
 }
 
 // Two-frame read: write GEN_CFG1 with REG_RD_ADD|REG_RD_EN, then clock a dummy
@@ -75,12 +114,18 @@ bool ADS9324<SpiType, HostType>::writeRegister(RegisterBank bank, uint8_t addr,
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::readRegister(RegisterBank bank, uint8_t addr,
                                               uint16_t& data) noexcept {
+  data = 0;
   if (!selectBank(bank)) {
     return false;
   }
   // Frame: write GEN_CFG1 with REG_RD_ADD and REG_RD_EN (Table 7-17).
-  spiTransfer24(reg::PackWrite(reg::GEN_CFG1, reg::ReadCommand(addr)));
-  const uint32_t rx = spiTransfer24(0);
+  if (!spiTransfer24(reg::PackWrite(reg::GEN_CFG1, reg::ReadCommand(addr)))) {
+    return false;
+  }
+  uint32_t rx = 0;
+  if (!spiTransfer24(0, &rx)) {
+    return false;
+  }
   data = reg::UnpackRegData(rx);
   return true;
 }
@@ -92,14 +137,74 @@ bool ADS9324<SpiType, HostType>::applyDigitalInterface() noexcept {
   return writeRegister(RegisterBank::Common, reg::GEN_CFG3, cfg3);
 }
 
+/**
+ * Table 7-18 steps 2-6: SW_RST, wait, BANK_SEL = common, GEN_CFG3. Every
+ * register is back at its reset value afterwards (§7.4.1), so the caches that
+ * mirror chip registers are reset too.
+ */
 template <typename SpiType, typename HostType>
-bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
+bool ADS9324<SpiType, HostType>::resetChip() noexcept {
   if (!writeRegister(RegisterBank::Common, reg::GEN_CFG1, reg::GEN_CFG1_SW_RST)) {
     return false;
   }
   host_.DelayMs(ADS9324_CFG::RESET_DELAY_MS);
-  current_bank_ = RegisterBank::Common;
+  return restoreAfterReset();
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
+  bank_known_ = false;
+  ch_count_mode_ = ChannelCountMode::All16;
+  ch_sel_ = 0;
+  reference_ = ReferenceSource::RefselPin;
+  osr_ = OversamplingRatio::None;
+  osr_clock_ = OversamplingClock::Internal;
+  adc_cal_mode_ = AdcCalMode::Disabled;
+  avg_mode_ready_ = false;
+  for (uint8_t i = 0; i < kNumChannels; ++i) {
+    ch_cfg_[i] = ChannelConfig{};
+  }
+  if (!selectBank(RegisterBank::Common)) {
+    return false;
+  }
   return applyDigitalInterface();
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
+  if (!resetChip() || !applyChannelDefaults()) {
+    initialized_ = false; // the chip may still be in its 8-lane reset mode
+    ++errors_;
+    return false;
+  }
+  return true;
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::HardwareReset() noexcept {
+  if constexpr (!detail::kHostDrivesReset<HostType>) {
+    return false;
+  } else {
+    host_.ResetWrite(false);
+    host_.DelayUs(ADS9324_CFG::RESET_PULSE_US);
+    host_.ResetWrite(true);
+    host_.DelayMs(ADS9324_CFG::POWER_ON_DELAY_MS); // t_PU after a device reset (§7.4.2)
+    if (!restoreAfterReset() || !applyChannelDefaults()) {
+      initialized_ = false;
+      ++errors_;
+      return false;
+    }
+    return true;
+  }
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetReference(ReferenceSource source) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::ANA_CFG1, reg::AnaCfg1Value(source))) {
+    return false;
+  }
+  reference_ = source;
+  return true;
 }
 
 template <typename SpiType, typename HostType>
@@ -107,20 +212,11 @@ bool ADS9324<SpiType, HostType>::EnsureInitialized(bool force) noexcept {
   if (initialized_ && !force) {
     return true;
   }
+  initialized_ = false;
 
   host_.DelayMs(ADS9324_CFG::POWER_ON_DELAY_MS);
 
-  if (!SoftwareReset()) {
-    ++errors_;
-    return false;
-  }
-
-  if (!writeRegister(RegisterBank::Common, reg::BANK_SEL, reg::BANK_COMMON)) {
-    ++errors_;
-    return false;
-  }
-
-  if (!applyDigitalInterface()) {
+  if (!resetChip()) {
     ++errors_;
     return false;
   }
@@ -131,6 +227,12 @@ bool ADS9324<SpiType, HostType>::EnsureInitialized(bool force) noexcept {
       ++errors_;
       return false;
     }
+  }
+
+  // The CONFIG_ADS9324_* range / input type / bandwidth defaults go to the chip.
+  if (!applyChannelDefaults()) {
+    ++errors_;
+    return false;
   }
 
   initialized_ = true;
@@ -211,7 +313,7 @@ ChannelConfig ADS9324<SpiType, HostType>::GetChannelConfig(uint8_t channel) cons
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetChannelOffset(uint8_t channel, int16_t ofs_10bit) noexcept {
-  if (channel >= kNumChannels) {
+  if (channel >= kNumChannels || ofs_10bit < kOffsetMin || ofs_10bit > kOffsetMax) {
     return false;
   }
   const uint16_t coded = static_cast<uint16_t>(ofs_10bit) & 0x03FFu;
@@ -220,36 +322,184 @@ bool ADS9324<SpiType, HostType>::SetChannelOffset(uint8_t channel, int16_t ofs_1
 }
 
 template <typename SpiType, typename HostType>
-bool ADS9324<SpiType, HostType>::SetChannelGain(uint8_t channel, uint16_t gan_14bit) noexcept {
-  if (channel >= kNumChannels) {
+bool ADS9324<SpiType, HostType>::SetChannelGain(uint8_t channel, int16_t gain) noexcept {
+  if (channel >= kNumChannels || gain < kGainMin || gain > kGainMax) {
     return false;
   }
+  // 14-bit two's complement: the low 14 bits of the 16-bit value (bits 15:14 are reserved, 0).
   return writeRegister(reg::BankForChannel(channel), reg::GanAddr(reg::LocalChannel(channel)),
-                       static_cast<uint16_t>(gan_14bit & 0x3FFFu));
+                       static_cast<uint16_t>(static_cast<uint16_t>(gain) & 0x3FFFu));
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetDataFormat(DataFormat format) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::GEN_CFG3,
+                     reg::GenCfg3Value(lanes_, length_, data_on_sdout_, format))) {
+    return false;
+  }
   format_ = format;
-  return applyDigitalInterface();
+  return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetDigitalInterface(DoutLaneMode lanes, DoutLength length,
                                                      bool data_on_sdout) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::GEN_CFG3,
+                     reg::GenCfg3Value(lanes, length, data_on_sdout, format_))) {
+    return false;
+  }
   lanes_ = lanes;
   length_ = length;
   data_on_sdout_ = data_on_sdout;
-  return applyDigitalInterface();
+  return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetChannelCountMode(ChannelCountMode mode,
                                                      uint8_t ch_sel) noexcept {
+  const auto sel = static_cast<uint8_t>(ch_sel & 0x07u);
+  if (!writeRegister(RegisterBank::Common, reg::ANA_CFG2, reg::AnaCfg2Value(mode, sel))) {
+    return false;
+  }
   ch_count_mode_ = mode;
-  ch_sel_ = static_cast<uint8_t>(ch_sel & 0x07u);
-  return writeRegister(RegisterBank::Common, reg::ANA_CFG2,
-                       reg::AnaCfg2Value(mode, ch_sel_));
+  ch_sel_ = sel;
+  return true;
+}
+
+/**
+ * DIG_FILTER = @p value; with @p sysref_pulse a 0 -> 1 -> 0 edge on
+ * DIG_FILT_SYSREF resets the filter accumulator, held high for at least
+ * t_CONVST (Figure 7-14: SYSREF_HIGH > t_CONVST, 1 us at 1 MSPS, section 5.6).
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::writeDigFilter(uint16_t value, bool sysref_pulse) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER, value)) {
+    return false;
+  }
+  if (!sysref_pulse) {
+    return true;
+  }
+  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER,
+                     static_cast<uint16_t>(value | reg::DIG_FILTER_SYSREF))) {
+    return false;
+  }
+  host_.DelayUs(kSysrefHighUs);
+  return writeRegister(RegisterBank::Common, reg::DIG_FILTER, value);
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetOversampling(OversamplingRatio osr,
+                                                 OversamplingClock clock) noexcept {
+  if (static_cast<uint8_t>(osr) > static_cast<uint8_t>(OversamplingRatio::X128)) {
+    return false;
+  }
+  const bool enable = osr != OversamplingRatio::None;
+  // §7.3.11.2: initialize GEN_CFG5 before using the digital filters, OVR_EN first.
+  if (enable && !avg_mode_ready_) {
+    if (!writeRegister(RegisterBank::Common, reg::GEN_CFG5, reg::GEN_CFG5_AVG_MODE_OVR_EN) ||
+        !writeRegister(
+            RegisterBank::Common, reg::GEN_CFG5,
+            static_cast<uint16_t>(reg::GEN_CFG5_AVG_MODE_OVR_EN | reg::GEN_CFG5_AVG_MODE))) {
+      return false;
+    }
+    avg_mode_ready_ = true;
+  }
+  if (!writeDigFilter(reg::DigFilterValue(osr, clock), enable)) {
+    return false;
+  }
+  osr_ = osr;
+  osr_clock_ = clock;
+  return true;
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetSystemCorrection(bool offset, bool gain) noexcept {
+  uint16_t v = 0;
+  if (!offset) {
+    v = static_cast<uint16_t>(v | reg::CH_GEN_CFG5_OFS_CORR_DIS);
+  }
+  if (!gain) {
+    v = static_cast<uint16_t>(v | reg::CH_GEN_CFG5_GAN_CORR_DIS);
+  }
+  return writeRegister(RegisterBank::Ain1_8, reg::CH_GEN_CFG5, v) &&
+         writeRegister(RegisterBank::Ain9_16, reg::CH_GEN_CFG5, v);
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::RunAdcCalibration(AdcCalMode mode) noexcept {
+  bool diff[2] = {true, true};
+  for (uint8_t ch = 0; ch < kNumChannels; ++ch) {
+    if (ch_cfg_[ch].type != InputType::Differential) {
+      diff[ch / 8u] = false;
+    }
+  }
+  const auto type = [](bool d) { return d ? InputType::Differential : InputType::SingleEnded; };
+  return RunAdcCalibration(mode, type(diff[0]), type(diff[1]));
+}
+
+/**
+ * Single-shot ADC_CAL, SBASB22 section 7.3.10 steps 1-7. CONVST idles low in
+ * this driver, so step 6 ("a low-high pulse sequence, end state high, at least
+ * one falling edge") is high, low, high; CONVST goes back low at the end.
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::RunAdcCalibration(AdcCalMode mode, InputType ain1_8,
+                                                   InputType ain9_16) noexcept {
+  if (!initialized_ ||
+      static_cast<uint8_t>(mode) > static_cast<uint8_t>(AdcCalMode::OffsetAndGain)) {
+    return false;
+  }
+  const uint16_t cal =
+      reg::AdcCalValue(mode, ain1_8 == InputType::Differential, ain9_16 == InputType::Differential);
+  if (mode == AdcCalMode::Disabled) {
+    if (!writeRegister(RegisterBank::Common, reg::ADC_CAL, cal)) {
+      return false;
+    }
+    adc_cal_mode_ = mode;
+    return true;
+  }
+  // Step 1 (and "disable digital filters" before ADC_CAL): only INT_TRIG_MODE set.
+  if (!writeDigFilter(reg::DIG_FILTER_INT_TRIG_MODE, false) ||
+      !writeRegister(RegisterBank::Common, reg::ADC_CAL, cal) ||
+      !writeRegister(RegisterBank::Common, reg::ADC_CAL,
+                     static_cast<uint16_t>(cal | reg::ADC_CAL_TRIG))) {
+    return false;
+  }
+  host_.DelayUs(10);
+  if (!writeRegister(RegisterBank::Common, reg::ADC_CAL, cal)) {
+    return false;
+  }
+  host_.ConvstWrite(true);
+  host_.DelayUs(1);
+  host_.ConvstWrite(false);
+  host_.DelayUs(1);
+  host_.ConvstWrite(true);
+
+  host_.DelayMs(ADS9324_CFG::ADC_CAL_WAIT_MS);
+  bool done = false;
+  bool bus_ok = true;
+  for (uint32_t ms = 0; ms <= ADS9324_CFG::ADC_CAL_TIMEOUT_MS; ++ms) {
+    uint16_t status = 0;
+    if (!readRegister(RegisterBank::Common, reg::DEVICE_STATUS, status)) {
+      bus_ok = false;
+      break;
+    }
+    if ((status & reg::DEVICE_STATUS_CALIB_BUSY) == 0) {
+      done = true;
+      break;
+    }
+    host_.DelayMs(1);
+  }
+  host_.ConvstWrite(false);
+  // Put the oversampling filter back (SYSREF pulse resets its accumulator).
+  const bool restored = bus_ok && writeDigFilter(reg::DigFilterValue(osr_, osr_clock_),
+                                                 osr_ != OversamplingRatio::None);
+  if (!done || !restored) {
+    ++errors_;
+    return false;
+  }
+  adc_cal_mode_ = mode;
+  return true;
 }
 
 template <typename SpiType, typename HostType>
@@ -295,27 +545,32 @@ bool ADS9324<SpiType, HostType>::ProgramWindowComparator(uint8_t channel, int8_t
 
 template <typename SpiType, typename HostType>
 uint8_t ADS9324<SpiType, HostType>::activeChannelCount() const noexcept {
-  switch (ch_count_mode_) {
-    case ChannelCountMode::Eight: return 8;
-    case ChannelCountMode::Four:  return 4;
-    case ChannelCountMode::Two:   return 2;
-    case ChannelCountMode::All16:
-    default:                      return kNumChannels;
-  }
+  return reg::FrameChannelCount(ch_count_mode_);
 }
 
 /**
- * CONVST high ~1 µs then low (conversion on falling edge). If DRDY is wired,
- * poll up to DRDY_TIMEOUT_US; otherwise wait CONV_FALLBACK_US.
+ * CONVST high ~1 µs then low (conversion on falling edge); N edges 1 µs apart
+ * with external-clock oversampling (t_CONVST >= 1 us, section 5.6). If DRDY is
+ * wired, poll up to DRDY_TIMEOUT_US, otherwise wait CONV_FALLBACK_US; both times N
+ * when the chip runs the N conversions itself (internal clock, Figure 7-17).
  */
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::pulseConvstAndWait() noexcept {
-  host_.ConvstWrite(true);
-  host_.DelayUs(1);
-  host_.ConvstWrite(false);
+  const uint8_t samples = OversamplingSamples(osr_);
+  const bool external = osr_clock_ == OversamplingClock::External;
+  const uint8_t edges = external ? samples : uint8_t{1};
+  for (uint8_t i = 0; i < edges; ++i) {
+    if (i != 0) {
+      host_.DelayUs(1);
+    }
+    host_.ConvstWrite(true);
+    host_.DelayUs(1);
+    host_.ConvstWrite(false);
+  }
 
+  const uint32_t scale = external ? 1u : samples;
   if (host_.HasDrdy()) {
-    const uint32_t budget = ADS9324_CFG::DRDY_TIMEOUT_US;
+    const uint32_t budget = ADS9324_CFG::DRDY_TIMEOUT_US * scale;
     for (uint32_t i = 0; i < budget; ++i) {
       if (host_.DrdyRead()) {
         return true;
@@ -324,14 +579,15 @@ bool ADS9324<SpiType, HostType>::pulseConvstAndWait() noexcept {
     }
     return false;
   }
-  host_.DelayUs(ADS9324_CFG::CONV_FALLBACK_US);
+  host_.DelayUs(ADS9324_CFG::CONV_FALLBACK_US * scale);
   return true;
 }
 
 /**
  * One CS-low burst of N×2 (16-bit) or N×3 (24-bit) bytes. 24-bit mode still
- * uses the first two bytes as the 16-bit code. Channel i in the burst maps to
- * API channel i when ADC_NUM_SEL is All16.
+ * uses the first two bytes as the 16-bit code. Word i of the burst is API
+ * channel reg::FrameChannel(mode, ch_sel, i): i itself with ADC_NUM_SEL =
+ * All16, the Table 7-12 channel set (lowest channel first) otherwise.
  */
 template <typename SpiType, typename HostType>
 Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
@@ -350,20 +606,24 @@ Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
   const uint8_t n = activeChannelCount();
   const std::size_t bytes_per = (length_ == DoutLength::Bits24) ? 3u : 2u;
   uint8_t rx[kNumChannels * 3]{};
-  uint8_t tx[kNumChannels * 3]{};
-  spi_.transfer(tx, rx, static_cast<std::size_t>(n) * bytes_per);
+  const uint8_t tx[kNumChannels * 3]{};
+  if (!detail::Transfer(spi_, tx, rx, static_cast<std::size_t>(n) * bytes_per)) {
+    snap.error = Error::SpiError;
+    ++errors_;
+    return snap;
+  }
 
   for (uint8_t i = 0; i < n && i < kNumChannels; ++i) {
-    uint16_t raw = 0;
-    if (bytes_per == 2) {
-      raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[i * 2]) << 8) | rx[i * 2 + 1]);
-    } else {
-      raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[i * 3]) << 8) | rx[i * 3 + 1]);
+    const std::size_t at = static_cast<std::size_t>(i) * bytes_per;
+    const auto raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[at]) << 8) | rx[at + 1]);
+    const uint8_t ch = reg::FrameChannel(ch_count_mode_, ch_sel_, i);
+    if (ch >= kNumChannels) { // FrameChannel's "no channel" value; cannot happen for i < n
+      continue;
     }
     const int16_t twos = WireWordToTwos(raw, format_);
-    snap.count[i] = twos;
-    snap.voltage[i] = CountToVoltage(i, twos);
-    snap.valid_mask = static_cast<uint16_t>(snap.valid_mask | (uint16_t{1} << i));
+    snap.count[ch] = twos;
+    snap.voltage[ch] = CountToVoltage(ch, twos);
+    snap.valid_mask = static_cast<uint16_t>(snap.valid_mask | (uint16_t{1} << ch));
   }
   ++snapshots_;
   return snap;

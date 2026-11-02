@@ -12,19 +12,23 @@ Each macro below is `CONFIG_ADS9324_` followed by the name in the first column.
 
 | Name | Effect; default without it |
 | --- | --- |
-| `RANGE_12V5`, `RANGE_10V`, `RANGE_2V5` | Range in the driver's channel cache, `DEFAULT_RANGE`; ±5 V |
-| `SINGLE_ENDED` | Input type in the cache, `DEFAULT_INPUT_TYPE`; differential |
-| `PGA_WIDE` | Filter in the cache, `DEFAULT_BANDWIDTH`; low bandwidth |
+| `RANGE_12V5`, `RANGE_10V`, `RANGE_6V25`, `RANGE_2V5` | Range written to every channel at initialisation, `DEFAULT_RANGE`; ±5 V |
+| `SINGLE_ENDED` | Input type written to every channel, `DEFAULT_INPUT_TYPE`; differential |
+| `PGA_WIDE` | Filter written to every channel, `DEFAULT_BANDWIDTH`; low bandwidth |
 | `OFFSET_BINARY` | Data format written to GEN_CFG3 at initialisation, `DEFAULT_FORMAT`; two's complement |
 | `SKIP_DEVICE_ID_CHECK` | `EnsureInitialized()` stops requiring DEVICE_ID = `0x0004`; check on |
 | `POWER_ON_DELAY_MS` | Wait before the first frame, in ms; 30 (t<sub>PU</sub>) |
 | `RESET_DELAY_MS` | Wait after the software reset, in ms; 1 |
-| `DRDY_TIMEOUT_US` | DRDY poll budget after CONVST, in 1 µs steps; 1000 |
-| `CONV_FALLBACK_US` | Wait after CONVST when `HasDrdy()` is `false`, in µs; 10 |
+| `RESET_PULSE_US` | How long `HardwareReset()` holds RESET low, in µs; 10 (the datasheet gives no minimum) |
+| `DRDY_TIMEOUT_US` | DRDY poll budget after CONVST, in 1 µs steps, times *N* with internal-clock oversampling; 1000 |
+| `ADC_CAL_WAIT_MS` | Wait after triggering `RunAdcCalibration()` before checking CALIB_BUSY, in ms; 125 (T<sub>WAIT</sub>, Table 7-7) |
+| `ADC_CAL_TIMEOUT_MS` | Further CALIB_BUSY poll budget, in 1 ms steps; 125 |
+| `CONV_FALLBACK_US` | Wait after CONVST when `HasDrdy()` is `false`, in µs, times *N* with internal-clock oversampling; 10 |
 
-The range, input type and bandwidth defaults only seed the driver's cache: `EnsureInitialized()` does not write
-them to the chip, whose reset state is ±5 V differential, low bandwidth. Call `ConfigureAllChannels()` after
-initialisation when you change them, so the chip matches.
+`EnsureInitialized()` and `SoftwareReset()` write the range, input type and bandwidth defaults to all 16 channels
+(the PGA_CONFIG and PGA_BW_SEL registers of both channel banks) and to the driver's cache, so the chip and the
+voltage conversion agree without a `ConfigureAllChannels()` call. `ADS9324<...>::DefaultChannelConfig()` returns
+the resulting `ChannelConfig`.
 
 Do not lower `POWER_ON_DELAY_MS` below 30 unless your REFCAP capacitor is smaller than the datasheet's 1 µF, and
 keep `CONV_FALLBACK_US` above the conversion time (1.25 µs without oversampling).

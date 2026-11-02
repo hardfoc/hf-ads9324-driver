@@ -21,12 +21,13 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 
 | Method | Class | Contract |
 | --- | --- | --- |
-| `transfer(tx, rx, len)` | `SpiInterface` | One full-duplex transfer of `len` bytes with CS low for all of them. `tx == nullptr`: send zeros. `rx == nullptr`: discard the received bytes |
+| `transfer(tx, rx, len)` | `SpiInterface` | One full-duplex transfer of `len` bytes with CS low for all of them. `tx == nullptr`: send zeros. `rx == nullptr`: discard the received bytes. Return `true` when the bytes went out, `false` on a bus error |
 | `ConvstWrite(high)` | `HostInterface` | Drive CONVST high (`true`) or low (`false`) |
 | `DrdyRead()` | `HostInterface` | Return `true` when DRDY/ALARM is high (conversion ready) |
 | `HasDrdy() const` | `HostInterface` | `true` if DRDY is wired; `false` makes the driver wait `CONV_FALLBACK_US` instead |
 | `DelayUs(us)` | `HostInterface` | Block for at least `us` microseconds (1 µs steps during the DRDY poll) |
 | `DelayMs(ms)` | `HostInterface` | Block for at least `ms` milliseconds (30 ms power-up, 1 ms after reset) |
+| `ResetWrite(high)` | your host class, optional | Drive the RESET pin: `false` = low (chip held in reset), `true` = released. Only needed for `HardwareReset()` |
 
 ## The port
 
@@ -46,7 +47,14 @@ One class may implement both contracts; pass the same object twice: `ADS9324<Bus
 - **Own the bus.** Do not share this CS with another device, and do not let another task use the bus in the middle
   of a register read (two frames).
 
-`transfer()` returns `void`, so the driver cannot learn about a bus error. Log or count errors in your port.
+`transfer()` returns `bool`: `false` tells the driver the transfer failed. The call that sent the frame stops
+there: configuration calls return `false`, `ReadDeviceId()` returns 0 and the reads return `Error::SpiError`. The
+driver's cached settings change only after the frames that set them went out, and after a failed `BANK_SEL` frame
+the next access selects the bank again.
+
+Return the SDK's status as a `bool` (`== ESP_OK`, `== HAL_OK`): any other return type is rejected at compile time,
+so an `esp_err_t` (0 = success) cannot be read as `false`. A port written for the earlier contract, with a `void`
+`transfer()`, still compiles; the driver then treats every transfer as successful.
 
 ## CONVST and DRDY
 
@@ -56,6 +64,13 @@ inverts it, invert it in `DrdyRead()`, not with `SetAlarmPin(..., true)`.
 
 Without DRDY (`HasDrdy()` returns `false`) the driver waits `CONV_FALLBACK_US` (10 µs) after the falling edge. The
 conversion takes 1.25 µs without oversampling, so the default leaves margin.
+
+## Optional reset pin
+
+If RESET (pin 32) is wired to a GPIO, add `void ResetWrite(bool high)` to the host class, as the port above does.
+The driver detects it at compile time (`ADS9324<...>::HasHardwareReset()`); it is not part of `HostInterface`, so a
+port without it compiles unchanged and `HardwareReset()` returns `false`. Hold RESET high from power-up, for
+example with a pull-up, so the chip is not held in reset before your code runs.
 
 ## Reference implementation
 

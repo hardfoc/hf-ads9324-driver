@@ -34,8 +34,14 @@ the generated version header) and requires C++20 (`cxx_std_20`), so your target 
 | `HF_ADS9324_ENABLE_WARNINGS` | `OFF` | Adds `-Wall -Wextra -Wpedantic` to targets that link the driver |
 | `HF_ADS9324_BUILD_HOST_TESTS` | `OFF` | Builds the host tests and the documentation snippets in `tests/` ([Testing and CI](testing.md)) |
 
-The project also installs a CMake package: after `cmake --install`, `find_package(hf_ads9324)` provides the same
-`hf::ads9324` target.
+The project also installs a CMake package: `cmake --install` puts every header in `include/` (the `inc/` headers,
+`ads9324.ipp` and the generated `ads9324_version.h`), and `find_package(hf_ads9324 CONFIG)` then provides the same
+`hf::ads9324` target (`hf::hf_ads9324`, the name earlier installs exported, still works):
+
+```cmake
+find_package(hf_ads9324 1.0 CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE hf::ads9324)
+```
 
 ## ESP-IDF
 
@@ -52,8 +58,12 @@ wrong. Your component then declares `REQUIRES hf_ads9324`.
 | Library | [`CMakeLists.txt`](../CMakeLists.txt) | Interface library, install and package files, host-test switch |
 | ESP-IDF | [`examples/esp32/components/hf_ads9324/CMakeLists.txt`](../examples/esp32/components/hf_ads9324/CMakeLists.txt) | IDF component wrapper over the same settings |
 
-The version is set once in the settings file and written into `ads9324_version.h` at configure time
-(`HF_ADS9324_VERSION_STRING`, `HF_ADS9324_VERSION_MAJOR` and so on).
+The version is set once in the settings file. It becomes the CMake project version (`PROJECT_VERSION`) and the
+package version, and is written into `ads9324_version.h` at configure time (`HF_ADS9324_VERSION_STRING`,
+`HF_ADS9324_VERSION_MAJOR` and so on); `ADS9324<...>::GetDriverVersion()` and `GetDriverVersionMajor()` /
+`Minor()` / `Patch()` return those macros. `ads9324.hpp` includes the generated header, so build through CMake or
+the ESP-IDF component (both generate it). The host tests fail when the getters, the ESP-IDF component manifest
+(`idf_component.yml`) or the `Doxyfile` disagree with the settings file.
 
 ## Compile-time switches
 

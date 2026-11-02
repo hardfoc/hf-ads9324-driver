@@ -41,6 +41,18 @@ inline constexpr uint16_t kMaxCountUnsigned = 65535u;
  */
 inline constexpr uint16_t kDeviceIdAds9324 = 0x0004u;
 
+/** Smallest OFS_AINx value: −512 quarter LSBs = −128 LSB (10-bit two's complement, SBASB22 Table
+ * 7-5). */
+inline constexpr int16_t kOffsetMin = -512;
+/** Largest OFS_AINx value: +511 quarter LSBs = +127.75 LSB. */
+inline constexpr int16_t kOffsetMax = 511;
+
+/** Smallest GAN_AINx value: −8192, multiplier 0.875 (14-bit two's complement, SBASB22 Table 7-6).
+ */
+inline constexpr int16_t kGainMin = -8192;
+/** Largest GAN_AINx value: +8191, multiplier 1.124985. */
+inline constexpr int16_t kGainMax = 8191;
+
 /**
  * @brief Driver-level error codes returned in ReadResult and Snapshot.
  */
@@ -136,11 +148,143 @@ enum class DoutLength : uint8_t {
  * clocked. With @ref ChannelCountMode::All16, bits 0–15 are all set on success.
  */
 enum class ChannelCountMode : uint8_t {
-  All16 = 0,  ///< ADC_NUM_SEL = 00b — all 16 channels (default).
-  Eight = 1,  ///< First 8 channels of the selected group.
-  Four  = 2,  ///< First 4 channels of the selected group.
-  Two   = 3,  ///< First 2 channels of the selected group.
+  All16 = 0, ///< ADC_NUM_SEL = 00b — all 16 channels (default).
+  Eight = 1, ///< 8 channels, e.g. AIN1–4 + AIN13–16 (SBASB22 Table 7-12).
+  Four = 2,  ///< 4 channels, e.g. AIN1, AIN2, AIN15, AIN16 (Table 7-12).
+  Two = 3,   ///< 2 channels, e.g. AIN1 + AIN16 (Table 7-12).
 };
+
+/**
+ * @brief ADC reference source (ANA_CFG1 REFSEL_CTRL_DIS / EXT_REF_EN, SBASB22 Table 7-3).
+ */
+enum class ReferenceSource : uint8_t {
+  RefselPin =
+      0, ///< Reset default: the REFSEL pin decides (high = internal, low = external on REFIO).
+  Internal =
+      1, ///< Internal 4.096 V reference, REFSEL pin ignored (REFSEL_CTRL_DIS = 1, EXT_REF_EN = 0).
+  External =
+      2, ///< External reference on REFIO, REFSEL pin ignored (REFSEL_CTRL_DIS = 1, EXT_REF_EN = 1).
+};
+
+/**
+ * @brief Block-average oversampling ratio (DIG_FILTER.BLK_AVG_OSR, SBASB22 Table 8-17).
+ *
+ * The enumerator value is the register code; @ref OversamplingSamples gives
+ * the number of conversions averaged. Throughput drops by the same factor
+ * (Table 7-8: ±5 V SNR from 87.5 dB without averaging to 101.6 dB at 128).
+ */
+enum class OversamplingRatio : uint8_t {
+  None = 0,  ///< No averaging (reset default).
+  X2 = 1,    ///< 2 samples averaged.
+  X4 = 2,    ///< 4 samples.
+  X6 = 3,    ///< 6 samples.
+  X8 = 4,    ///< 8 samples.
+  X10 = 5,   ///< 10 samples.
+  X12 = 6,   ///< 12 samples.
+  X16 = 7,   ///< 16 samples.
+  X20 = 8,   ///< 20 samples.
+  X32 = 9,   ///< 32 samples.
+  X64 = 10,  ///< 64 samples.
+  X128 = 11, ///< 128 samples.
+};
+
+/**
+ * @brief Where the oversampled conversions are triggered (SBASB22 §7.3.11.2).
+ */
+enum class OversamplingClock : uint8_t {
+  /// One CONVST falling edge; the chip triggers the other N−1 conversions
+  /// itself (DIG_FILTER.INT_TRIG_MODE = 1, Figure 7-17).
+  Internal = 0,
+  /// Every conversion needs its own CONVST falling edge: the driver pulses
+  /// CONVST N times per snapshot (Figure 7-16). Regular sampling, best
+  /// antialiasing; the chip reports one averaged result after N edges.
+  External = 1,
+};
+
+/**
+ * @brief Number of conversions averaged for an @ref OversamplingRatio.
+ * @param osr Ratio.
+ * @return 1 (None), 2, 4, 6, 8, 10, 12, 16, 20, 32, 64 or 128; 1 for an unknown code.
+ */
+[[nodiscard]] inline constexpr uint8_t OversamplingSamples(OversamplingRatio osr) noexcept {
+  switch (osr) {
+  case OversamplingRatio::X2:
+    return 2;
+  case OversamplingRatio::X4:
+    return 4;
+  case OversamplingRatio::X6:
+    return 6;
+  case OversamplingRatio::X8:
+    return 8;
+  case OversamplingRatio::X10:
+    return 10;
+  case OversamplingRatio::X12:
+    return 12;
+  case OversamplingRatio::X16:
+    return 16;
+  case OversamplingRatio::X20:
+    return 20;
+  case OversamplingRatio::X32:
+    return 32;
+  case OversamplingRatio::X64:
+    return 64;
+  case OversamplingRatio::X128:
+    return 128;
+  case OversamplingRatio::None:
+  default:
+    return 1;
+  }
+}
+
+/**
+ * @brief What the on-chip ADC_CAL module calibrates (ADC_CAL_MODE[1:0], SBASB22 Table 8-16).
+ */
+enum class AdcCalMode : uint8_t {
+  Disabled = 0,      ///< 00b: ADC_CAL off, no ADC_CAL correction applied (reset default).
+  Offset = 1,        ///< 01b: offset error.
+  Gain = 2,          ///< 10b: gain error.
+  OffsetAndGain = 3, ///< 11b: offset and gain error.
+};
+
+/**
+ * @brief OFS_AINn value that moves a measured code onto the expected one (SBASB22 Equation 1).
+ *
+ * The chip adds OFS_AINn in quarter LSBs: `output = (code × 4 + OFS) / 4`.
+ *
+ * @param measured Code read with the reference input applied (offset correction at 0).
+ * @param expected Code the input should give (0 for a shorted differential input).
+ * @return `4 × (expected − measured)`; outside @ref kOffsetMin to @ref kOffsetMax the error is too
+ *         large for the register and @ref ads9324::ADS9324::SetChannelOffset rejects it.
+ */
+[[nodiscard]] inline constexpr int32_t OffsetCorrectionFor(int32_t measured,
+                                                           int32_t expected) noexcept {
+  return 4 * (expected - measured);
+}
+
+/**
+ * @brief GAN_AINn value that scales a measured code onto the expected one (SBASB22 Equation 3).
+ *
+ * `GAN = (expected − measured) / measured × 65536`, rounded to nearest, for two's-complement
+ * codes (measure near full scale with the gain correction at 0, after the offset correction).
+ *
+ * @param measured Two's-complement code read for a known input (not 0).
+ * @param expected Code that input should give.
+ * @return The correction; 0 when @p measured is 0. Outside @ref kGainMin to @ref kGainMax the
+ *         error is too large for the register and @ref ads9324::ADS9324::SetChannelGain rejects it.
+ */
+[[nodiscard]] inline constexpr int32_t GainCorrectionFor(int32_t measured,
+                                                         int32_t expected) noexcept {
+  if (measured == 0) {
+    return 0;
+  }
+  const int64_t num = static_cast<int64_t>(expected - measured) * 65536;
+  int64_t q = num / measured; // truncates toward zero
+  const int64_t r = num % measured;
+  if (2 * (r < 0 ? -r : r) >= (measured < 0 ? -static_cast<int64_t>(measured) : measured)) {
+    q += ((num < 0) != (measured < 0)) ? -1 : 1; // round half away from zero
+  }
+  return static_cast<int32_t>(q);
+}
 
 /**
  * @brief Function muxed onto the DRDY/ALARM pin (DRDY_ALARM_SEL[3:0]).

@@ -25,11 +25,12 @@ data on SDOUT. The eight parallel data lanes stay unused.
 | --- | --- | --- |
 | CONVST (50), in | The falling edge samples all channels | `ConvstWrite()`: high for 1 µs, then low |
 | DRDY/ALARM (49), out | Data ready, active high by default; can carry the window-comparator alert instead | `DrdyRead()`, polled every 1 µs up to `DRDY_TIMEOUT_US` |
-| RESET (32), in | Active-low asynchronous reset | Not driven: tie it high (to IOVDD) or give it its own GPIO |
-| REFSEL (31), in | High: internal 4.096 V reference. Low: external reference on REFIO | Not driven: tie it high for the internal reference |
+| RESET (32), in | Active-low asynchronous reset | Optional: tie it high (to IOVDD), or wire a GPIO and give the port `ResetWrite()` for `HardwareReset()` |
+| REFSEL (31), in | High: internal 4.096 V reference. Low: external reference on REFIO | Not driven: tie it high for the internal reference, or override it with `SetReference()` |
 
-The driver resets the chip with the SW_RST bit in GEN_CFG1, so the RESET pin can stay high. If you leave REFSEL low
-without an external reference on REFIO, the chip powers down (SBASB22 section 7.3.6).
+`EnsureInitialized()` resets the chip with the SW_RST bit in GEN_CFG1, so the RESET pin can stay high. If you leave
+REFSEL low without an external reference on REFIO, the chip powers down (SBASB22 section 7.3.6);
+`SetReference(ReferenceSource::Internal)` selects the internal reference whatever the pin says.
 
 ## Bus settings
 
@@ -75,6 +76,8 @@ sequenceDiagram
 | Wait after software reset | 1 ms (optional, Table 7-18) | `RESET_DELAY_MS` = 1 |
 | CONVST high and low time | at least 50 ns each | The driver holds CONVST high for 1 µs |
 | Conversion time t<sub>CONV</sub>, no oversampling | 1.25 µs | DRDY poll, or `CONV_FALLBACK_US` = 10 µs without DRDY |
+| Conversion with oversampling ratio *N* | *N* conversions (output rate 1 MSPS / *N*, Table 7-8) | Internal clock: DRDY timeout and fallback wait times *N*; external clock: *N* CONVST pulses 2 µs apart |
+| ADC_CAL time T<sub>WAIT</sub>, single-shot | 125 ms (Table 7-7) | `RunAdcCalibration()` waits `ADC_CAL_WAIT_MS`, then polls CALIB_BUSY |
 | CONVST rate f<sub>CONVST</sub> | 0.1 MHz to 1 MHz | See the note below |
 
 !!! note "Sampling rate and the specifications"
