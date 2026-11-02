@@ -23,6 +23,9 @@ ctest --test-dir build-host --output-on-failure
 | [`tests/check_version_copy.cmake`](../tests/check_version_copy.cmake) | `idf_component.yml` and `Doxyfile` carry the project version |
 | [`tests/install_consumer.cmake`](../tests/install_consumer.cmake) | `cmake --install` into the build tree, then a [`find_package()` consumer](../tests/install_consumer/main.cpp) that includes every public header and links `hf::ads9324` |
 
+The build also compiles the protocol test at `-O2 -Werror` (target `hf_ads9324_optimised_build`, never run): GCC
+reports array-bounds and similar warnings only with optimisation, and the ESP-IDF Release builds treat them as errors.
+
 ## Documentation snippets
 
 Every C++ block on this site is included from [`tests/docs/`](../tests/docs/my_port.hpp), which the host build

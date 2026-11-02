@@ -617,6 +617,9 @@ Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
     const std::size_t at = static_cast<std::size_t>(i) * bytes_per;
     const auto raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[at]) << 8) | rx[at + 1]);
     const uint8_t ch = reg::FrameChannel(ch_count_mode_, ch_sel_, i);
+    if (ch >= kNumChannels) { // FrameChannel's "no channel" value; cannot happen for i < n
+      continue;
+    }
     const int16_t twos = WireWordToTwos(raw, format_);
     snap.count[ch] = twos;
     snap.voltage[ch] = CountToVoltage(ch, twos);

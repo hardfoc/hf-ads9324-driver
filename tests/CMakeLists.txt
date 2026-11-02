@@ -76,3 +76,10 @@ target_compile_options(hf_ads9324_doc_snippets PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME hf_ads9324_install_consumer
   COMMAND ${CMAKE_COMMAND} -DBIN=${PROJECT_BINARY_DIR} -DSRC=${PROJECT_SOURCE_DIR}
           -DCXX=${CMAKE_CXX_COMPILER} -P ${CMAKE_CURRENT_SOURCE_DIR}/install_consumer.cmake)
+
+# GCC's -Warray-bounds and similar flow warnings only fire with optimisation, and the ESP-IDF Release builds
+# promote them to errors. Compile the driver at -O2 with -Werror whatever CMAKE_BUILD_TYPE is.
+add_library(hf_ads9324_optimised_build OBJECT host/test_ads9324_protocol.cpp)
+target_link_libraries(hf_ads9324_optimised_build PRIVATE hf::ads9324)
+target_compile_features(hf_ads9324_optimised_build PRIVATE cxx_std_20)
+target_compile_options(hf_ads9324_optimised_build PRIVATE -O2 -Wall -Wextra -Werror)
