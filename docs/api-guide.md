@@ -14,7 +14,7 @@ One `ADS9324<Spi, Host>` object per chip. Its methods fall into five groups:
 | --- | --- |
 | Bring-up | `EnsureInitialized()`, `IsInitialized()`, `SoftwareReset()`, `HardwareReset()`, `ReadDeviceId()`, `SetReference()` |
 | Channels | `ConfigureChannel()`, `ConfigureAllChannels()`, `GetChannelConfig()`, `SetChannelOffset()`, `SetChannelGain()` |
-| Data interface | `SetDataFormat()`, `GetDataFormat()`, `SetDigitalInterface()`, `SetChannelCountMode()` |
+| Data interface | `SetDataFormat()`, `GetDataFormat()`, `SetDigitalInterface()`, `SetChannelCountMode()`, `SetOversampling()` |
 | Pins and power | `SetAlarmPin()`, `ProgramWindowComparator()`, `SetPowerDown()` |
 | Reading | `ReadSnapshot()`, `ReadChannel()`, `CountToVoltage()`, `GetDiagnostics()` |
 
@@ -128,6 +128,34 @@ The chip outputs a fixed set of channels in these modes, taken from both ends of
 `ReadSnapshot()` stores each word under its real channel, so `count[12]` is AIN13 in every mode, and sets only
 those channels in `valid_mask`. `reg::FrameChannel(mode, ch_sel, word)` and `reg::FrameChannelMask(mode, ch_sel)`
 give the same mapping. `ReadChannel()` for a channel the chip does not send returns `Error::SpiError`.
+
+## Average with oversampling
+
+`SetOversampling(osr, clock)` turns on the chip's block-average filter (section 7.3.11.2): each snapshot returns
+the mean of *N* conversions per channel.
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:oversample"
+```
+
+| `OversamplingRatio` | DIG_FILTER `BLK_AVG_OSR` | SNR, ±5 V (Table 7-8) | Highest output rate |
+| --- | --- | --- | --- |
+| `None` (reset) | `0000b` | 87.5 dB | 1 MSPS |
+| `X2`, `X4`, `X8` | `0001b`, `0010b`, `0100b` | 89.5, 91.2, 92.7 dB | 500, 250, 125 kSPS |
+| `X16`, `X32` | `0111b`, `1001b` | 94.0, 96.7 dB | 62.5, 31.25 kSPS |
+| `X64`, `X128` | `1010b`, `1011b` | 99.1, 101.6 dB | 15.6, 7.8 kSPS |
+
+`X6`, `X10`, `X12` and `X20` are also valid codes (Table 8-17); `OversamplingSamples(osr)` returns *N*.
+
+| `OversamplingClock` | DIG_FILTER `INT_TRIG_MODE` | Conversions |
+| --- | --- | --- |
+| `Internal` (default) | 1 | One CONVST edge; the chip runs the other *N* − 1 itself (Figure 7-17) |
+| `External` | 0 | `ReadSnapshot()` pulses CONVST *N* times, 2 µs apart (Figure 7-16) |
+
+The first enabling call writes GEN_CFG5 `AVG_MODE_OVR_EN`, then `AVG_MODE`, as section 7.3.11.2 requires; every
+enabling call then writes DIG_FILTER and pulses `DIG_FILT_SYSREF` 0 → 1 → 0 to clear the accumulator. With the
+internal clock the DRDY timeout and the `CONV_FALLBACK_US` wait are multiplied by *N*. A reset returns the filter
+to `None` and `GetOversampling()` follows. A reserved code returns `false`.
 
 ## Window comparator and alarm pin
 

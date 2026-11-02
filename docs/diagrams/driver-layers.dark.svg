@@ -58,20 +58,26 @@
 <text x="926.2" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDigitalInterface()</text>
 <rect x="48" y="425.4" width="222.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
 <text x="56" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelCountMode()</text>
-<rect x="278.2" y="425.4" width="156.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="286.2" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">SetPowerDown()</text>
-<rect x="442.9" y="425.4" width="131.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="450.9" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">SetAlarmPin()</text>
-<rect x="582.7" y="425.4" width="267.5" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="590.7" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ProgramWindowComparator()</text>
-<rect x="858.3" y="425.4" width="149.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="866.3" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadSnapshot()</text>
-<rect x="48" y="459.4" width="139.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="56" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadChannel()</text>
-<rect x="195.3" y="459.4" width="165.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="203.3" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">CountToVoltage()</text>
-<rect x="368.7" y="459.4" width="156" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="376.7" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDiagnostics()</text>
+<rect x="278.2" y="425.4" width="172.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="286.2" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">SetOversampling()</text>
+<rect x="458.7" y="425.4" width="174.1" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="466.7" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">GetOversampling()</text>
+<rect x="640.7" y="425.4" width="221.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="648.7" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">GetOversamplingClock()</text>
+<rect x="870.2" y="425.4" width="156.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="878.2" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">SetPowerDown()</text>
+<rect x="48" y="459.4" width="131.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">SetAlarmPin()</text>
+<rect x="187.8" y="459.4" width="267.5" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="195.8" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">ProgramWindowComparator()</text>
+<rect x="463.4" y="459.4" width="149.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="471.4" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadSnapshot()</text>
+<rect x="620.8" y="459.4" width="139.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="628.8" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadChannel()</text>
+<rect x="768.1" y="459.4" width="165.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="776.1" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">CountToVoltage()</text>
+<rect x="941.5" y="459.4" width="156" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="949.5" y="477.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDiagnostics()</text>
 <text x="48" y="307.4" font-size="17" font-weight="700" fill="#C7CBFF">HARDWARE-AGNOSTIC CORE</text>
 <text x="326.2" y="307.4" font-size="16" fill="#C7CBFF">ADS9324&lt;Spi, Host&gt;, inc/ads9324.hpp</text>
 <text x="56" y="578.4" font-size="20" font-weight="700" fill="#C7CBFF">Transport contracts</text>

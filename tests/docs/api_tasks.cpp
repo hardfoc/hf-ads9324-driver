@@ -120,6 +120,24 @@ void fewer_task(Adc& adc) {
   // --8<-- [end:fewer]
 }
 
+bool oversample_task(Adc& adc) {
+  // --8<-- [start:oversample]
+  // Average 16 conversions per snapshot: +6.5 dB SNR on the ±5 V range, 62.5 kSPS at most (Table
+  // 7-8). The internal clock runs the 16 conversions from one CONVST edge.
+  if (!adc.SetOversampling(ads9324::OversamplingRatio::X16)) {
+    return false;
+  }
+  const ads9324::Snapshot avg = adc.ReadSnapshot(); // averaged codes, same layout as before
+  (void)avg;
+
+  // External clock: the driver pulses CONVST 16 times, at regular intervals (best antialiasing).
+  if (!adc.SetOversampling(ads9324::OversamplingRatio::X16, ads9324::OversamplingClock::External)) {
+    return false;
+  }
+  return adc.SetOversampling(ads9324::OversamplingRatio::None); // back to one conversion
+  // --8<-- [end:oversample]
+}
+
 bool alarm_task(Adc& adc) {
   // --8<-- [start:alarm]
   // Window comparator on AIN1. Thresholds are compared with the top 8 bits of the code, so one

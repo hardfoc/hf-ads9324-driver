@@ -295,6 +295,98 @@ void test_hardware_reset_and_reference() {
   CHECK(!adc.IsInitialized());
 }
 
+/// DRDY is wired but never goes high: every snapshot times out.
+class MockBusNoDrdyEdge : public MockBus {
+public:
+  bool HasDrdy() const {
+    return true;
+  }
+  bool DrdyRead() {
+    return false;
+  }
+};
+
+std::vector<uint16_t> writes_to(const MockBus& bus, uint8_t addr, std::size_t from) {
+  std::vector<uint16_t> out;
+  for (std::size_t i = from; i < bus.writes.size(); ++i) {
+    if ((bus.writes[i] >> 16) == addr) {
+      out.push_back(static_cast<uint16_t>(bus.writes[i] & 0xFFFFu));
+    }
+  }
+  return out;
+}
+
+void test_oversampling() {
+  using namespace ads9324;
+  CHECK(OversamplingSamples(OversamplingRatio::None) == 1);
+  CHECK(OversamplingSamples(OversamplingRatio::X6) == 6);
+  CHECK(OversamplingSamples(OversamplingRatio::X128) == 128);
+  // DIG_FILTER, SBASB22 Table 8-17: BLK_AVG_OSR in 7:4, INT_TRIG_MODE bit 1.
+  CHECK(reg::DigFilterValue(OversamplingRatio::X16, OversamplingClock::Internal) == 0x0072);
+  CHECK(reg::DigFilterValue(OversamplingRatio::X128, OversamplingClock::External) == 0x00B0);
+  CHECK(reg::DigFilterValue(OversamplingRatio::None, OversamplingClock::Internal) == 0x0000);
+
+  MockBus bus;
+  Adc adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+  CHECK(adc.GetOversampling() == OversamplingRatio::None);
+
+  std::size_t mark = bus.writes.size();
+  CHECK(adc.SetOversampling(OversamplingRatio::X16));
+  // Section 7.3.11.2: GEN_CFG5 AVG_MODE_OVR_EN first, then AVG_MODE; SYSREF 0 -> 1 edge.
+  const std::vector<uint16_t> cfg5 = writes_to(bus, reg::GEN_CFG5, mark);
+  CHECK(cfg5.size() == 2 && cfg5[0] == 0x0002 && cfg5[1] == 0x0003);
+  const std::vector<uint16_t> filt = writes_to(bus, reg::DIG_FILTER, mark);
+  CHECK(filt.size() == 3 && filt[0] == 0x0072 && filt[1] == 0x0073 && filt[2] == 0x0072);
+  CHECK(bus.mem[0][reg::DIG_FILTER] == 0x0072);
+  CHECK(adc.GetOversampling() == OversamplingRatio::X16);
+
+  // Internal clock: one CONVST edge per snapshot; without DRDY the wait covers all 16 conversions.
+  int pulses = bus.convst_pulses;
+  uint64_t waited = bus.delayed_us;
+  CHECK(adc.ReadSnapshot().ok());
+  CHECK(bus.convst_pulses == pulses + 1);
+  CHECK(bus.delayed_us - waited == 1u + 16u * ADS9324_CFG::CONV_FALLBACK_US);
+
+  // External clock: N edges; GEN_CFG5 is not written again.
+  mark = bus.writes.size();
+  CHECK(adc.SetOversampling(OversamplingRatio::X4, OversamplingClock::External));
+  CHECK(writes_to(bus, reg::GEN_CFG5, mark).empty());
+  CHECK(bus.mem[0][reg::DIG_FILTER] == 0x0020);
+  pulses = bus.convst_pulses;
+  CHECK(adc.ReadSnapshot().ok());
+  CHECK(bus.convst_pulses == pulses + 4);
+
+  CHECK(adc.SetOversampling(OversamplingRatio::None));
+  CHECK(bus.mem[0][reg::DIG_FILTER] == 0x0000);
+  pulses = bus.convst_pulses;
+  CHECK(adc.ReadSnapshot().ok());
+  CHECK(bus.convst_pulses == pulses + 1);
+
+  CHECK(!adc.SetOversampling(static_cast<OversamplingRatio>(12))); // reserved code
+  bus.failNext(1);
+  CHECK(!adc.SetOversampling(OversamplingRatio::X8));
+  CHECK(adc.GetOversampling() == OversamplingRatio::None);
+
+  // A reset clears DIG_FILTER and GEN_CFG5: the cache follows and GEN_CFG5 is written again next
+  // time.
+  CHECK(adc.SetOversampling(OversamplingRatio::X8));
+  CHECK(adc.SoftwareReset());
+  CHECK(adc.GetOversampling() == OversamplingRatio::None);
+  mark = bus.writes.size();
+  CHECK(adc.SetOversampling(OversamplingRatio::X2));
+  CHECK(writes_to(bus, reg::GEN_CFG5, mark).size() == 2);
+
+  // With DRDY wired, the timeout grows with N too (internal clock, Figure 7-17).
+  MockBusNoDrdyEdge slow;
+  ADS9324<MockBusNoDrdyEdge, MockBusNoDrdyEdge> adc2(slow, slow);
+  CHECK(adc2.EnsureInitialized());
+  CHECK(adc2.SetOversampling(OversamplingRatio::X4));
+  waited = slow.delayed_us;
+  CHECK(adc2.ReadSnapshot().error == Error::Timeout);
+  CHECK(slow.delayed_us - waited >= 4u * ADS9324_CFG::DRDY_TIMEOUT_US);
+}
+
 }  // namespace
 
 int main() {
@@ -305,6 +397,7 @@ int main() {
   test_channel_mode_order();
   test_signed_gain_and_offset();
   test_hardware_reset_and_reference();
+  test_oversampling();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

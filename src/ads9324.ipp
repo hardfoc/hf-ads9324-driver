@@ -157,6 +157,9 @@ bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
   ch_count_mode_ = ChannelCountMode::All16;
   ch_sel_ = 0;
   reference_ = ReferenceSource::RefselPin;
+  osr_ = OversamplingRatio::None;
+  osr_clock_ = OversamplingClock::Internal;
+  avg_mode_ready_ = false;
   for (uint8_t i = 0; i < kNumChannels; ++i) {
     ch_cfg_[i] = ChannelConfig{};
   }
@@ -363,6 +366,38 @@ bool ADS9324<SpiType, HostType>::SetChannelCountMode(ChannelCountMode mode,
 }
 
 template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetOversampling(OversamplingRatio osr,
+                                                 OversamplingClock clock) noexcept {
+  if (static_cast<uint8_t>(osr) > static_cast<uint8_t>(OversamplingRatio::X128)) {
+    return false;
+  }
+  const bool enable = osr != OversamplingRatio::None;
+  // §7.3.11.2: initialize GEN_CFG5 before using the digital filters, OVR_EN first.
+  if (enable && !avg_mode_ready_) {
+    if (!writeRegister(RegisterBank::Common, reg::GEN_CFG5, reg::GEN_CFG5_AVG_MODE_OVR_EN) ||
+        !writeRegister(
+            RegisterBank::Common, reg::GEN_CFG5,
+            static_cast<uint16_t>(reg::GEN_CFG5_AVG_MODE_OVR_EN | reg::GEN_CFG5_AVG_MODE))) {
+      return false;
+    }
+    avg_mode_ready_ = true;
+  }
+  const uint16_t v = reg::DigFilterValue(osr, clock);
+  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER, v)) {
+    return false;
+  }
+  // A 0 -> 1 edge on DIG_FILT_SYSREF resets the accumulator (required for the internal clock).
+  if (enable && (!writeRegister(RegisterBank::Common, reg::DIG_FILTER,
+                                static_cast<uint16_t>(v | reg::DIG_FILTER_SYSREF)) ||
+                 !writeRegister(RegisterBank::Common, reg::DIG_FILTER, v))) {
+    return false;
+  }
+  osr_ = osr;
+  osr_clock_ = clock;
+  return true;
+}
+
+template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetPowerDown(bool power_down) noexcept {
   return writeRegister(RegisterBank::Common, reg::PDN_CTL,
                        power_down ? reg::PDN_CTL_DEVICE_PDN : uint16_t{0});
@@ -409,17 +444,28 @@ uint8_t ADS9324<SpiType, HostType>::activeChannelCount() const noexcept {
 }
 
 /**
- * CONVST high ~1 µs then low (conversion on falling edge). If DRDY is wired,
- * poll up to DRDY_TIMEOUT_US; otherwise wait CONV_FALLBACK_US.
+ * CONVST high ~1 µs then low (conversion on falling edge); N edges 1 µs apart
+ * with external-clock oversampling (t_CONVST >= 1 us, section 5.6). If DRDY is
+ * wired, poll up to DRDY_TIMEOUT_US, otherwise wait CONV_FALLBACK_US; both times N
+ * when the chip runs the N conversions itself (internal clock, Figure 7-17).
  */
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::pulseConvstAndWait() noexcept {
-  host_.ConvstWrite(true);
-  host_.DelayUs(1);
-  host_.ConvstWrite(false);
+  const uint8_t samples = OversamplingSamples(osr_);
+  const bool external = osr_clock_ == OversamplingClock::External;
+  const uint8_t edges = external ? samples : uint8_t{1};
+  for (uint8_t i = 0; i < edges; ++i) {
+    if (i != 0) {
+      host_.DelayUs(1);
+    }
+    host_.ConvstWrite(true);
+    host_.DelayUs(1);
+    host_.ConvstWrite(false);
+  }
 
+  const uint32_t scale = external ? 1u : samples;
   if (host_.HasDrdy()) {
-    const uint32_t budget = ADS9324_CFG::DRDY_TIMEOUT_US;
+    const uint32_t budget = ADS9324_CFG::DRDY_TIMEOUT_US * scale;
     for (uint32_t i = 0; i < budget; ++i) {
       if (host_.DrdyRead()) {
         return true;
@@ -428,7 +474,7 @@ bool ADS9324<SpiType, HostType>::pulseConvstAndWait() noexcept {
     }
     return false;
   }
-  host_.DelayUs(ADS9324_CFG::CONV_FALLBACK_US);
+  host_.DelayUs(ADS9324_CFG::CONV_FALLBACK_US * scale);
   return true;
 }
 

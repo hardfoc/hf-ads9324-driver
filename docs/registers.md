@@ -59,6 +59,8 @@ Common bank:
 | `0x0C` | `DRDY_ALARM_SEL` | `ALRM_POL` (4), `DRDY_ALRM_SEL` (3:0) in `SetAlarmPin()` |
 | `0x10` | `ANA_CFG1` | `REFSEL_CTRL_DIS` (1), `EXT_REF_EN` (0) in `SetReference()` |
 | `0x11` | `ANA_CFG2` | `ADC_CH_SEL` (6:4), `ADC_NUM_SEL` (3:2) in `SetChannelCountMode()` |
+| `0x14` | `DIG_FILTER` | `BLK_AVG_OSR` (7:4), `INT_TRIG_MODE` (1), `DIG_FILT_SYSREF` (0) in `SetOversampling()` |
+| `0x15` | `GEN_CFG5` | `AVG_MODE_OVR_EN` (1), then `AVG_MODE` (0), before the first `SetOversampling()` |
 | `0x21` | `DEVICE_ID` | Read by `ReadDeviceId()`; `0x0004` on an ADS9324 |
 
 </div>
@@ -78,7 +80,7 @@ Channel banks (the same address in AIN1-8 and AIN9-16):
 
 </div>
 
-The other registers (reference select, oversampling filters, phase delay, ADC self-calibration, test patterns)
+The other registers (FIR and moving-average filters, phase delay, ADC self-calibration, test patterns)
 have addresses in `ads9324_registers.hpp` but no driver call. [PGA and calibration](pga-and-calibration.md)
 explains the channel registers.
 

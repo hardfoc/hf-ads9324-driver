@@ -167,6 +167,76 @@ enum class ReferenceSource : uint8_t {
 };
 
 /**
+ * @brief Block-average oversampling ratio (DIG_FILTER.BLK_AVG_OSR, SBASB22 Table 8-17).
+ *
+ * The enumerator value is the register code; @ref OversamplingSamples gives
+ * the number of conversions averaged. Throughput drops by the same factor
+ * (Table 7-8: ±5 V SNR from 87.5 dB without averaging to 101.6 dB at 128).
+ */
+enum class OversamplingRatio : uint8_t {
+  None = 0,  ///< No averaging (reset default).
+  X2 = 1,    ///< 2 samples averaged.
+  X4 = 2,    ///< 4 samples.
+  X6 = 3,    ///< 6 samples.
+  X8 = 4,    ///< 8 samples.
+  X10 = 5,   ///< 10 samples.
+  X12 = 6,   ///< 12 samples.
+  X16 = 7,   ///< 16 samples.
+  X20 = 8,   ///< 20 samples.
+  X32 = 9,   ///< 32 samples.
+  X64 = 10,  ///< 64 samples.
+  X128 = 11, ///< 128 samples.
+};
+
+/**
+ * @brief Where the oversampled conversions are triggered (SBASB22 §7.3.11.2).
+ */
+enum class OversamplingClock : uint8_t {
+  /// One CONVST falling edge; the chip triggers the other N−1 conversions
+  /// itself (DIG_FILTER.INT_TRIG_MODE = 1, Figure 7-17).
+  Internal = 0,
+  /// Every conversion needs its own CONVST falling edge: the driver pulses
+  /// CONVST N times per snapshot (Figure 7-16). Regular sampling, best
+  /// antialiasing; the chip reports one averaged result after N edges.
+  External = 1,
+};
+
+/**
+ * @brief Number of conversions averaged for an @ref OversamplingRatio.
+ * @param osr Ratio.
+ * @return 1 (None), 2, 4, 6, 8, 10, 12, 16, 20, 32, 64 or 128; 1 for an unknown code.
+ */
+[[nodiscard]] inline constexpr uint8_t OversamplingSamples(OversamplingRatio osr) noexcept {
+  switch (osr) {
+  case OversamplingRatio::X2:
+    return 2;
+  case OversamplingRatio::X4:
+    return 4;
+  case OversamplingRatio::X6:
+    return 6;
+  case OversamplingRatio::X8:
+    return 8;
+  case OversamplingRatio::X10:
+    return 10;
+  case OversamplingRatio::X12:
+    return 12;
+  case OversamplingRatio::X16:
+    return 16;
+  case OversamplingRatio::X20:
+    return 20;
+  case OversamplingRatio::X32:
+    return 32;
+  case OversamplingRatio::X64:
+    return 64;
+  case OversamplingRatio::X128:
+    return 128;
+  case OversamplingRatio::None:
+  default:
+    return 1;
+  }
+}
+
+/**
  * @brief Function muxed onto the DRDY/ALARM pin (DRDY_ALARM_SEL[3:0]).
  */
 enum class AlarmPinMode : uint8_t {

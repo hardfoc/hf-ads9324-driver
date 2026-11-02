@@ -77,6 +77,14 @@ inline constexpr uint16_t ANA_CFG1_EXT_REF_EN      = (1u << 0);  ///< External r
 
 inline constexpr uint16_t DEVICE_STATUS_CALIB_BUSY = (1u << 3);  ///< Calibration in progress.
 
+inline constexpr uint16_t DIG_FILTER_INT_TRIG_MODE = (1u << 1); ///< Internal oversampling trigger.
+inline constexpr uint16_t DIG_FILTER_SYSREF = (1u << 0);   ///< 0→1 resets the filter accumulator.
+inline constexpr uint8_t DIG_FILTER_BLK_AVG_OSR_SHIFT = 4; ///< BLK_AVG_OSR[3:0] in bits 7:4.
+
+inline constexpr uint16_t GEN_CFG5_AVG_MODE_OVR_EN =
+    (1u << 1);                                           ///< Set before AVG_MODE (§7.3.11.2).
+inline constexpr uint16_t GEN_CFG5_AVG_MODE = (1u << 0); ///< Digital-filter averaging mode.
+
 // ---- Channel banks (same offsets in AIN1–8 and AIN9–16) --------------------
 inline constexpr uint8_t PGA_CONFIG_AIN12 = 0x08;  ///< Pair register: even local ch in low byte, odd in high.
 inline constexpr uint8_t PGA_BW_SEL       = 0x0C;  ///< 2 bits per local channel.
@@ -238,6 +246,30 @@ inline constexpr uint16_t DWC_CFG_STAT_RST = (1u << 15);  ///< Clear DWC status.
   default:
     return 0;
   }
+}
+
+/**
+ * @brief Build DIG_FILTER for the block-average filter (SBASB22 Table 8-17).
+ *
+ * FIR, moving average and phase delay stay disabled (one filter path at a
+ * time, §7.3.11); DIG_FILT_SYSREF is 0.
+ *
+ * @param osr   BLK_AVG_OSR.
+ * @param clock INT_TRIG_MODE = 1 for @ref OversamplingClock::Internal (only
+ *              when @p osr is not None).
+ * @return 16-bit DIG_FILTER value.
+ */
+[[nodiscard]] inline constexpr uint16_t DigFilterValue(OversamplingRatio osr,
+                                                       OversamplingClock clock) noexcept {
+  if (osr == OversamplingRatio::None) {
+    return 0;
+  }
+  auto v =
+      static_cast<uint16_t>((static_cast<uint16_t>(osr) & 0xFu) << DIG_FILTER_BLK_AVG_OSR_SHIFT);
+  if (clock == OversamplingClock::Internal) {
+    v = static_cast<uint16_t>(v | DIG_FILTER_INT_TRIG_MODE);
+  }
+  return v;
 }
 
 /**

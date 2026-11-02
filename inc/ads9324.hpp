@@ -304,6 +304,40 @@ public:
   bool SetChannelCountMode(ChannelCountMode mode, uint8_t ch_sel = 0) noexcept;
 
   /**
+   * @brief Enable or disable the block-average oversampling filter.
+   *
+   * Sequence (SBASB22 §7.3.11.2): before the first use, GEN_CFG5 =
+   * AVG_MODE_OVR_EN, then AVG_MODE_OVR_EN | AVG_MODE; then DIG_FILTER with
+   * BLK_AVG_OSR and INT_TRIG_MODE (@ref reg::DigFilterValue), followed by a
+   * 0→1→0 edge on DIG_FILT_SYSREF to reset the accumulator.
+   *
+   * @ref ReadSnapshot then returns averaged codes: with
+   * @ref OversamplingClock::Internal one CONVST edge starts all N
+   * conversions; with @ref OversamplingClock::External the driver pulses
+   * CONVST N times. With the internal clock the DRDY timeout and the
+   * fallback wait (@ref ADS9324_CFG::DRDY_TIMEOUT_US,
+   * @ref ADS9324_CFG::CONV_FALLBACK_US) are multiplied by N. The output
+   * data rate drops by N (Table 7-8).
+   *
+   * @param osr   Ratio; @ref OversamplingRatio::None disables averaging.
+   * @param clock Trigger source of the averaged conversions.
+   * @retval true  Registers written; @ref GetOversampling reports @p osr.
+   * @retval false @p osr is not a valid code, or bus error (cache unchanged).
+   */
+  bool SetOversampling(OversamplingRatio osr,
+                       OversamplingClock clock = OversamplingClock::Internal) noexcept;
+
+  /** @brief Programmed oversampling ratio (software cache; None after any reset). */
+  [[nodiscard]] OversamplingRatio GetOversampling() const noexcept {
+    return osr_;
+  }
+
+  /** @brief Programmed oversampling trigger (software cache). */
+  [[nodiscard]] OversamplingClock GetOversamplingClock() const noexcept {
+    return osr_clock_;
+  }
+
+  /**
    * @brief Device power-down (PDN_CTL.DEVICE_PDN).
    * @param power_down true = power down, false = run.
    * @retval true  Write accepted.
@@ -423,7 +457,8 @@ private:
   bool applyChannelDefaults() noexcept;
 
   /**
-   * @brief CONVST high ≥ 1 µs, falling edge, then DRDY poll or fallback delay.
+   * @brief CONVST high ≥ 1 µs, falling edge (N times with external-clock
+   *        oversampling), then DRDY poll or fallback delay.
    * @retval false DRDY timed out.
    */
   bool pulseConvstAndWait() noexcept;
@@ -443,7 +478,11 @@ private:
   bool data_on_sdout_ = ADS9324_CFG::DEFAULT_DATA_ON_SDOUT;
   ChannelCountMode ch_count_mode_ = ChannelCountMode::All16;
   uint8_t ch_sel_ = 0;  ///< ANA_CFG2 CH_SEL.
-  ReferenceSource reference_ = ReferenceSource::RefselPin; ///< ANA_CFG1.
+  ReferenceSource reference_ = ReferenceSource::RefselPin;    ///< ANA_CFG1.
+  OversamplingRatio osr_ = OversamplingRatio::None;           ///< DIG_FILTER.BLK_AVG_OSR.
+  OversamplingClock osr_clock_ = OversamplingClock::Internal; ///< DIG_FILTER.INT_TRIG_MODE.
+  bool avg_mode_ready_ =
+      false; ///< GEN_CFG5 AVG_MODE_OVR_EN / AVG_MODE written since the last reset.
   ChannelConfig ch_cfg_[kNumChannels]{};  ///< Last PGA programming per channel.
   uint32_t snapshots_ = 0;  ///< Successful snapshot count.
   uint32_t errors_ = 0;     ///< Failed init / timeout / programming count.
