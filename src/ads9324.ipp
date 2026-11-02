@@ -365,6 +365,27 @@ bool ADS9324<SpiType, HostType>::SetChannelCountMode(ChannelCountMode mode,
   return true;
 }
 
+/**
+ * DIG_FILTER = @p value; with @p sysref_pulse a 0 -> 1 -> 0 edge on
+ * DIG_FILT_SYSREF resets the filter accumulator, held high for at least
+ * t_CONVST (Figure 7-14: SYSREF_HIGH > t_CONVST, 1 us at 1 MSPS, section 5.6).
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::writeDigFilter(uint16_t value, bool sysref_pulse) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER, value)) {
+    return false;
+  }
+  if (!sysref_pulse) {
+    return true;
+  }
+  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER,
+                     static_cast<uint16_t>(value | reg::DIG_FILTER_SYSREF))) {
+    return false;
+  }
+  host_.DelayUs(kSysrefHighUs);
+  return writeRegister(RegisterBank::Common, reg::DIG_FILTER, value);
+}
+
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetOversampling(OversamplingRatio osr,
                                                  OversamplingClock clock) noexcept {
@@ -382,14 +403,7 @@ bool ADS9324<SpiType, HostType>::SetOversampling(OversamplingRatio osr,
     }
     avg_mode_ready_ = true;
   }
-  const uint16_t v = reg::DigFilterValue(osr, clock);
-  if (!writeRegister(RegisterBank::Common, reg::DIG_FILTER, v)) {
-    return false;
-  }
-  // A 0 -> 1 edge on DIG_FILT_SYSREF resets the accumulator (required for the internal clock).
-  if (enable && (!writeRegister(RegisterBank::Common, reg::DIG_FILTER,
-                                static_cast<uint16_t>(v | reg::DIG_FILTER_SYSREF)) ||
-                 !writeRegister(RegisterBank::Common, reg::DIG_FILTER, v))) {
+  if (!writeDigFilter(reg::DigFilterValue(osr, clock), enable)) {
     return false;
   }
   osr_ = osr;

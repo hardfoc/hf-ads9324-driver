@@ -153,7 +153,8 @@ the mean of *N* conversions per channel.
 | `External` | 0 | `ReadSnapshot()` pulses CONVST *N* times, 2 µs apart (Figure 7-16) |
 
 The first enabling call writes GEN_CFG5 `AVG_MODE_OVR_EN`, then `AVG_MODE`, as section 7.3.11.2 requires; every
-enabling call then writes DIG_FILTER and pulses `DIG_FILT_SYSREF` 0 → 1 → 0 to clear the accumulator. With the
+enabling call then writes DIG_FILTER and pulses `DIG_FILT_SYSREF` 0 → 1 → 0, high for 2 µs (more than one t<sub>CONVST</sub>,
+Figure 7-14), to clear the accumulator. With the
 internal clock the DRDY timeout and the `CONV_FALLBACK_US` wait are multiplied by *N*. A reset returns the filter
 to `None` and `GetOversampling()` follows. A reserved code returns `false`.
 

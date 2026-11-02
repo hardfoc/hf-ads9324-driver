@@ -33,6 +33,7 @@ public:
   bool pending_read = false;
   uint32_t last_tx = 0;
   std::vector<uint32_t> writes;
+  std::vector<uint64_t> write_times; ///< delayed_us when each entry of `writes` was sent.
   int convst_pulses = 0;
   bool convst = false;
   uint8_t conversion_bytes[48]{};
@@ -116,6 +117,7 @@ public:
         mem[bank_index][addr] = data;
       }
 
+      write_times.resize(writes.size(), delayed_us);
       if (rx != nullptr) {
         rx[0] = static_cast<uint8_t>((reply >> 16) & 0xFF);
         rx[1] = static_cast<uint8_t>((reply >> 8) & 0xFF);

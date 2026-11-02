@@ -463,6 +463,17 @@ private:
    */
   bool pulseConvstAndWait() noexcept;
 
+  /**
+   * @brief Write DIG_FILTER; optionally pulse DIG_FILT_SYSREF to reset the accumulator.
+   * @param value        DIG_FILTER payload without DIG_FILT_SYSREF.
+   * @param sysref_pulse Write value | SYSREF, wait @ref kSysrefHighUs, write value again.
+   * @retval false A frame failed.
+   */
+  bool writeDigFilter(uint16_t value, bool sysref_pulse) noexcept;
+
+  /// DIG_FILT_SYSREF high time: more than one t_CONVST (Figure 7-14), 1 µs at 1 MSPS, plus margin.
+  static constexpr uint32_t kSysrefHighUs = 2;
+
   /** @brief Channel count implied by @ref ch_count_mode_ (2/4/8/16). */
   uint8_t activeChannelCount() const noexcept;
 

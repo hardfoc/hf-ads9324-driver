@@ -16,8 +16,9 @@ code that used the affected API.
 
 - `SetOversampling(OversamplingRatio, OversamplingClock)` / `GetOversampling()`: the block-average filter
   (DIG_FILTER `BLK_AVG_OSR`, 2 to 128 samples) with the internal or the external oversampling clock, including the
-  GEN_CFG5 `AVG_MODE_OVR_EN` / `AVG_MODE` initialisation and the `DIG_FILT_SYSREF` accumulator reset (SBASB22
-  section 7.3.11.2, Table 7-8, Table 8-17, Table 8-18). `ReadSnapshot()` pulses CONVST *N* times with the external
+  GEN_CFG5 `AVG_MODE_OVR_EN` / `AVG_MODE` initialisation and the `DIG_FILT_SYSREF` accumulator reset, held high
+  for more than one t<sub>CONVST</sub> (SBASB22
+  section 7.3.11.2, Figure 7-14, Table 7-8, Table 8-17, Table 8-18). `ReadSnapshot()` pulses CONVST *N* times with the external
   clock and scales its DRDY timeout and fallback wait by *N* with the internal clock.
 
 - Host-test workflow (`ci-host-tests.yml`): GCC and Clang build and run the protocol tests and compile the

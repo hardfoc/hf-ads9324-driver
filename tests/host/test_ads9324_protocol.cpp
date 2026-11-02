@@ -340,6 +340,12 @@ void test_oversampling() {
   CHECK(filt.size() == 3 && filt[0] == 0x0072 && filt[1] == 0x0073 && filt[2] == 0x0072);
   CHECK(bus.mem[0][reg::DIG_FILTER] == 0x0072);
   CHECK(adc.GetOversampling() == OversamplingRatio::X16);
+  // Figure 7-14: SYSREF stays high for more than one t_CONVST (1 us).
+  for (std::size_t i = mark; i + 1 < bus.writes.size(); ++i) {
+    if (bus.writes[i] == reg::PackWrite(reg::DIG_FILTER, 0x0073)) {
+      CHECK(bus.write_times[i + 1] - bus.write_times[i] > 1u);
+    }
+  }
 
   // Internal clock: one CONVST edge per snapshot; without DRDY the wait covers all 16 conversions.
   int pulses = bus.convst_pulses;
