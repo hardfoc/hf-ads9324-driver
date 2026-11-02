@@ -11,8 +11,8 @@ metadata:
 apps:
   driver_integration_test:
     description: >
-      Comprehensive ADS9324 driver integration test suite
-      (hardware required for full validation)
+      Integration test suite: DEVICE_ID, PGA, snapshots, calibration
+      registers and power-down, with a pass / fail summary
     source_file: "driver_integration_test.cpp"
     category: "test"
     idf_versions: ["release/v5.5"]
@@ -35,7 +35,7 @@ apps:
       - "Standby / power-down"
 
   basic_snapshot:
-    description: "Initialize and print a live 16-channel snapshot loop"
+    description: "Initialise all channels and print a snapshot every 500 ms"
     source_file: "basic_snapshot_example.cpp"
     category: "example"
     idf_versions: ["release/v5.5"]
@@ -45,7 +45,7 @@ apps:
     hardware_required: true
 
   pga_offset:
-    description: "Mixed PGA ranges plus offset/gain programming"
+    description: "Different ranges per channel, plus offset and gain registers"
     source_file: "pga_offset_example.cpp"
     category: "example"
     idf_versions: ["release/v5.5"]

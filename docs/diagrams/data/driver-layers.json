@@ -1,0 +1,36 @@
+{
+  "methods": [
+    "EnsureInitialized",
+    "IsInitialized",
+    "SoftwareReset",
+    "ReadDeviceId",
+    "ConfigureChannel",
+    "ConfigureAllChannels",
+    "GetChannelConfig",
+    "SetChannelOffset",
+    "SetChannelGain",
+    "SetDataFormat",
+    "GetDataFormat",
+    "SetDigitalInterface",
+    "SetChannelCountMode",
+    "SetPowerDown",
+    "SetAlarmPin",
+    "ProgramWindowComparator",
+    "ReadSnapshot",
+    "ReadChannel",
+    "CountToVoltage",
+    "GetDiagnostics"
+  ],
+  "port_hooks": [
+    "transfer",
+    "ConvstWrite",
+    "DrdyRead",
+    "HasDrdy",
+    "DelayUs",
+    "DelayMs"
+  ],
+  "sources": [
+    "inc/ads9324.hpp:ADS9324 public methods",
+    "inc/ads9324_spi_interface.hpp:SpiInterface, HostInterface"
+  ]
+}

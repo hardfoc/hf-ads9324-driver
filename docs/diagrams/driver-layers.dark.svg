@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="943" viewBox="0 0 1200 943" role="img" aria-labelledby="driver-layers-title driver-layers-desc" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+<title id="driver-layers-title">Three layers, one of them yours</title>
+<desc id="driver-layers-desc">Layer diagram: the application calls the hardware-agnostic ADS9324 driver and its methods, which use the SpiInterface and HostInterface contracts, which call the platform port you write, which drives the SPI bus, CONVST and DRDY of the ADS9324.</desc>
+<defs><marker id="fk-arrow-rail" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6C7889"/></marker></defs>
+<rect x="0.5" y="0.5" width="1199" height="942" rx="16" fill="#0E131A" stroke="#283241"/>
+<text x="32" y="46.8" font-size="16" font-weight="700" letter-spacing="1.2" fill="#C7CBFF">ARCHITECTURE</text>
+<text x="32" y="85.6" font-size="32" font-weight="700" fill="#E8EDF3">Three layers, one of them yours</text>
+<text x="32" y="115.4" font-size="18" fill="#9AA6B5">The driver and the contracts are the same on every MCU. The port is one SPI transfer, two pins and two delays.</text>
+<rect x="32" y="131.4" width="1136" height="1" fill="#252F3C"/>
+<rect x="32" y="278.4" width="1136" height="191" rx="16" fill="#1C1F3D" stroke="#3B4080" stroke-width="1.2"/>
+<path d="M600 242.4 L600 274.4" fill="none" stroke="#6C7889" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#fk-arrow-rail)"/>
+<path d="M600 473.4 L600 505.4" fill="none" stroke="#6C7889" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#fk-arrow-rail)"/>
+<path d="M600 627.4 L600 659.4" fill="none" stroke="#6C7889" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#fk-arrow-rail)"/>
+<path d="M600 755.4 L600 787.4" fill="none" stroke="#6C7889" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#fk-arrow-rail)"/>
+<rect x="32" y="149.4" width="1136" height="89" rx="12" fill="#151C26" stroke="#3A4657" stroke-width="1"/>
+<rect x="32" y="157.4" width="4" height="73" rx="2" fill="#94A3B8"/>
+<rect x="32" y="509.4" width="1136" height="114" rx="12" fill="#1C1F3D" stroke="#8C93FF" stroke-width="1.4"/>
+<rect x="32" y="517.4" width="4" height="98" rx="2" fill="#8C93FF"/>
+<rect x="32" y="663.4" width="1136" height="88" rx="12" fill="#0F2A28" stroke="#2DD4BF" stroke-width="1.4"/>
+<rect x="32" y="671.4" width="4" height="72" rx="2" fill="#2DD4BF"/>
+<rect x="32" y="791.4" width="1136" height="89" rx="12" fill="#151C26" stroke="#3A4657" stroke-width="1"/>
+<rect x="32" y="799.4" width="4" height="73" rx="2" fill="#94A3B8"/>
+<text x="56" y="184.4" font-size="20" font-weight="700" fill="#E8EDF3">Your application</text>
+<text x="56" y="215" font-size="17" fill="#D2DAE4">sampling loop, protection logic, data logger ...</text>
+<rect x="48" y="323.4" width="167" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">EnsureInitialized()</text>
+<rect x="223" y="323.4" width="123.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="231" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">IsInitialized()</text>
+<rect x="354.3" y="323.4" width="151.6" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="362.3" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">SoftwareReset()</text>
+<rect x="513.9" y="323.4" width="143.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="521.9" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadDeviceId()</text>
+<rect x="665.1" y="323.4" width="180.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="673.1" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureChannel()</text>
+<rect x="853.8" y="323.4" width="212" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="861.8" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureAllChannels()</text>
+<rect x="48" y="357.4" width="182.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetChannelConfig()</text>
+<rect x="238.2" y="357.4" width="177.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="246.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelOffset()</text>
+<rect x="423.5" y="357.4" width="162.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="431.5" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelGain()</text>
+<rect x="594.2" y="357.4" width="153.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="602.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDataFormat()</text>
+<rect x="755.4" y="357.4" width="154.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="763.4" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDataFormat()</text>
+<rect x="918.2" y="357.4" width="184.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="926.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDigitalInterface()</text>
+<rect x="48" y="391.4" width="222.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelCountMode()</text>
+<rect x="278.2" y="391.4" width="156.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="286.2" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetPowerDown()</text>
+<rect x="442.9" y="391.4" width="131.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="450.9" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetAlarmPin()</text>
+<rect x="582.7" y="391.4" width="267.5" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="590.7" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">ProgramWindowComparator()</text>
+<rect x="858.3" y="391.4" width="149.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="866.3" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadSnapshot()</text>
+<rect x="48" y="425.4" width="139.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadChannel()</text>
+<rect x="195.3" y="425.4" width="165.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="203.3" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">CountToVoltage()</text>
+<rect x="368.7" y="425.4" width="156" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="376.7" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDiagnostics()</text>
+<text x="48" y="307.4" font-size="17" font-weight="700" fill="#C7CBFF">HARDWARE-AGNOSTIC CORE</text>
+<text x="326.2" y="307.4" font-size="16" fill="#C7CBFF">ADS9324&lt;Spi, Host&gt;, inc/ads9324.hpp</text>
+<text x="56" y="544.4" font-size="20" font-weight="700" fill="#C7CBFF">Transport contracts</text>
+<text x="56" y="575" font-size="17" fill="#D2DAE4">SpiInterface: 24-bit register frames and conversion bursts, one CS window per call;</text>
+<text x="56" y="599.7" font-size="17" fill="#D2DAE4">HostInterface: CONVST pulse, DRDY poll or timed wait, power-on and reset delays</text>
+<text x="56" y="698.4" font-size="20" font-weight="700" fill="#A7F3E6">Platform port (your classes)</text>
+<text x="56" y="727.6" font-size="16" font-family="'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace" fill="#D2DAE4">transfer()  ConvstWrite()  DrdyRead()  HasDrdy()  DelayUs()  DelayMs()</text>
+<text x="56" y="826.4" font-size="20" font-weight="700" fill="#E8EDF3">ADS9324</text>
+<text x="56" y="857" font-size="17" fill="#D2DAE4">SPI mode 0 up to 60 MHz (SDI, SDOUT, SCLK, CS)  /  CONVST, DRDY/ALARM</text>
+<rect x="32" y="892.8" width="14" height="14" rx="4" fill="#1C1F3D" stroke="#8C93FF" stroke-width="1.4"/>
+<text x="54" y="907.4" font-size="16" fill="#9AA6B5">this library</text>
+<rect x="161.8" y="892.8" width="14" height="14" rx="4" fill="#0F2A28" stroke="#2DD4BF" stroke-width="1.4"/>
+<text x="183.8" y="907.4" font-size="16" fill="#9AA6B5">you write</text>
+<rect x="282.1" y="892.8" width="14" height="14" rx="4" fill="#1B232E" stroke="#94A3B8" stroke-width="1.4"/>
+<text x="304.1" y="907.4" font-size="16" fill="#9AA6B5">hardware</text>
+</svg>
