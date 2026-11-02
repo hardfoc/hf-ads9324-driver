@@ -1,9 +1,3 @@
----
-layout: default
-title: CMake
-nav_order: 7
----
-
 # CMake
 
 Standalone:

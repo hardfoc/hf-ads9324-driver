@@ -1,9 +1,3 @@
----
-layout: default
-title: Quick start
-nav_order: 3
----
-
 # Quick start
 
 1. Implement `ads9324::SpiInterface` (full-duplex, CS around each `transfer`).

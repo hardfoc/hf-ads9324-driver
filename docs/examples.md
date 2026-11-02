@@ -1,9 +1,3 @@
----
-layout: default
-title: Examples
-nav_order: 12
----
-
 # Examples
 
 ESP32-C6 apps under `examples/esp32/`:

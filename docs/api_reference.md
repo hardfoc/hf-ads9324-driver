@@ -1,9 +1,3 @@
----
-layout: default
-title: API reference
-nav_order: 4
----
-
 # API reference
 
 Class: `ads9324::ADS9324<SpiType, HostType>`

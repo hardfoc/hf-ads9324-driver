@@ -1,9 +1,3 @@
----
-layout: default
-title: Registers
-nav_order: 5
----
-
 # Registers and SPI frames
 
 Configuration SPI is **24 bits**: `SDI[23:16] = address`, `SDI[15:0] = data`. CS rising edge commits the write (SBASB22 §7.5.1).

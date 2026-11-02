@@ -1,9 +1,3 @@
----
-layout: default
-title: Installation
-nav_order: 9
----
-
 # Installation
 
 ```bash

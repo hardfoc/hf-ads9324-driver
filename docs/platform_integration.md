@@ -1,9 +1,3 @@
----
-layout: default
-title: Platform integration
-nav_order: 11
----
-
 # Platform integration
 
 The driver has no OS or MCU headers. Bind two CRTP types, then construct

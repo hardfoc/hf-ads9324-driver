@@ -1,9 +1,3 @@
----
-layout: default
-title: Configuration
-nav_order: 13
----
-
 # Configuration
 
 Compile-time knobs in `ads9324_config.hpp` (override with `-DCONFIG_ADS9324_*`):

@@ -1,11 +1,3 @@
----
-layout: default
-title: "HardFOC ADS9324 Driver"
-description: "Portable C++20 driver for the TI ADS9324 16-channel 16-bit simultaneous-sampling SAR ADC with integrated PGA, offset/gain, and 1-lane SDOUT"
-nav_order: 1
-permalink: /
----
-
 # HF-ADS9324 Driver
 
 **Portable C++20 driver for the Texas Instruments ADS9324 — 16-channel, 16-bit, 1 MSPS simultaneous-sampling SAR ADC with integrated analog front-end (PGA, differential / single-ended, offset and gain calibration).**

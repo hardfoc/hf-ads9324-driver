@@ -1,9 +1,3 @@
----
-layout: default
-title: Hardware setup
-nav_order: 8
----
-
 # Hardware setup
 
 This driver uses the **1-lane SDOUT** digital path (GEN_CFG3 = `0x0032` at

@@ -1,9 +1,3 @@
----
-layout: default
-title: Index
-nav_order: 2
----
-
 # ADS9324 documentation
 
 | Page | Contents |

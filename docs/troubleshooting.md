@@ -1,9 +1,3 @@
----
-layout: default
-title: Troubleshooting
-nav_order: 10
----
-
 # Troubleshooting
 
 | Symptom | Likely cause |

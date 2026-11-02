@@ -1,9 +1,3 @@
----
-layout: default
-title: PGA and calibration
-nav_order: 6
----
-
 # PGA, offset, and gain
 
 Each channel's `PGA_CONFIG` nibble (Table 7-1 / register 0x08–0x0B):
