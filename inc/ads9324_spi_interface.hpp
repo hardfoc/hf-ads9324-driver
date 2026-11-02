@@ -56,6 +56,17 @@ inline bool Transfer(Port& port, const uint8_t* tx, uint8_t* rx, std::size_t len
   }
 }
 
+/**
+ * @brief True when the host port drives the RESET pin: it has `ResetWrite(bool high)`.
+ *
+ * Optional hook, detected on the derived class (it is not part of
+ * @ref HostInterface): `ResetWrite(false)` drives the active-low RESET pin low,
+ * `ResetWrite(true)` releases it. Ports without it keep compiling;
+ * @ref ADS9324::HardwareReset then returns false.
+ */
+template <typename Host>
+inline constexpr bool kHostDrivesReset = requires(Host& host) { host.ResetWrite(true); };
+
 } // namespace detail
 
 /**
@@ -127,6 +138,10 @@ protected:
  *
  * When @ref HasDrdy returns false, the driver waits
  * @ref ADS9324_CFG::CONV_FALLBACK_US after CONVST instead of polling.
+ *
+ * Optional: `void ResetWrite(bool high)` on the derived class drives the
+ * active-low RESET pin (false = hold the chip in reset). When it exists,
+ * @ref ADS9324::HardwareReset uses it; ports without it still compile.
  */
 template <typename Derived>
 class HostInterface {

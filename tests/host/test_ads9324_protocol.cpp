@@ -73,7 +73,6 @@ void test_bus_errors_propagate() {
   CHECK(!adc.SetPowerDown(true));
   CHECK(!adc.SetAlarmPin(AlarmPinMode::DwcAlert));
   CHECK(!adc.ProgramWindowComparator(0, 10, -10));
-  CHECK(!adc.SoftwareReset());
 
   CHECK(!adc.SetDataFormat(DataFormat::OffsetBinary));
   CHECK(adc.GetDataFormat() == DataFormat::TwosComplement); // cache unchanged
@@ -102,6 +101,15 @@ void test_bus_errors_propagate() {
   CHECK(bus.writes.size() == writes_before + 2); // BANK_SEL again, then OFS_AIN2
   CHECK((bus.writes[writes_before] >> 16) == reg::BANK_SEL);
   CHECK(bus.mem[1][reg::OFS_AIN1 + 1] == 2);
+
+  // A reset that cannot reprogram the chip leaves it in 8-lane mode: the driver is no longer
+  // initialised.
+  bus.failNext();
+  CHECK(!adc.SoftwareReset());
+  CHECK(!adc.IsInitialized());
+  bus.heal();
+  CHECK(adc.ReadSnapshot().error == Error::NotInitialized);
+  CHECK(adc.EnsureInitialized());
 }
 
 void test_legacy_void_port() {
@@ -235,6 +243,58 @@ void test_signed_gain_and_offset() {
   CHECK(*ofs == 0x200);
 }
 
+void test_hardware_reset_and_reference() {
+  using namespace ads9324;
+  static_assert(!Adc::HasHardwareReset(), "MockBus has no ResetWrite()");
+  {
+    MockBus bus;
+    Adc adc(bus, bus);
+    CHECK(adc.EnsureInitialized());
+    CHECK(!adc.HardwareReset()); // no RESET pin in the port: nothing happens
+    CHECK(adc.IsInitialized());
+  }
+
+  using ResetAdc = ADS9324<MockBusWithReset, MockBusWithReset>;
+  static_assert(ResetAdc::HasHardwareReset());
+  MockBusWithReset bus;
+  ResetAdc adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+
+  // ANA_CFG1, SBASB22 Table 7-3 / Table 8-14.
+  CHECK(adc.GetReference() == ReferenceSource::RefselPin);
+  CHECK(adc.SetReference(ReferenceSource::Internal));
+  CHECK(bus.mem[0][reg::ANA_CFG1] == 0x0002); // REFSEL_CTRL_DIS
+  CHECK(adc.SetReference(ReferenceSource::External));
+  CHECK(bus.mem[0][reg::ANA_CFG1] == 0x0003); // REFSEL_CTRL_DIS | EXT_REF_EN
+  CHECK(adc.GetReference() == ReferenceSource::External);
+  CHECK(adc.SetReference(ReferenceSource::RefselPin));
+  CHECK(bus.mem[0][reg::ANA_CFG1] == 0x0000);
+  bus.failNext(1);
+  CHECK(!adc.SetReference(ReferenceSource::Internal));
+  CHECK(adc.GetReference() == ReferenceSource::RefselPin);
+  CHECK(adc.SetReference(ReferenceSource::Internal));
+
+  CHECK(adc.SetChannelCountMode(ChannelCountMode::Two, 0));
+  CHECK(adc.SetChannelOffset(3, 100));
+  const uint64_t before = bus.delayed_us;
+  CHECK(adc.HardwareReset());
+  CHECK(bus.reset_pulses == 1);
+  CHECK(bus.reset_low_us >= ADS9324_CFG::RESET_PULSE_US);
+  CHECK(bus.reset_released_at >= before + ADS9324_CFG::RESET_PULSE_US);
+  // t_PU (30 ms, section 7.4.2) passes after RESET rises and before the first frame.
+  CHECK(bus.delayed_us - bus.reset_released_at >= 30000u);
+  CHECK(bus.transfers > bus.transfers_at_release);
+  CHECK(bus.mem[0][reg::GEN_CFG3] == 0x0032); // 1-lane SDOUT again
+  CHECK(bus.mem[1][reg::OFS_AIN1 + 3] == 0);  // reset value
+  CHECK(adc.GetReference() == ReferenceSource::RefselPin);
+  CHECK(adc.ReadSnapshot().valid_mask == 0xFFFF);
+  CHECK(adc.IsInitialized());
+
+  bus.failNext();
+  CHECK(!adc.HardwareReset());
+  CHECK(!adc.IsInitialized());
+}
+
 }  // namespace
 
 int main() {
@@ -244,6 +304,7 @@ int main() {
   test_legacy_void_port();
   test_channel_mode_order();
   test_signed_gain_and_offset();
+  test_hardware_reset_and_reference();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

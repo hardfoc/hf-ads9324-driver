@@ -24,6 +24,19 @@ bool init_task(Adc& adc) {
   return true;
 }
 
+bool reset_task(Adc& adc) {
+  // --8<-- [start:reset]
+  // Use the internal 4.096 V reference whatever the REFSEL pin is strapped to.
+  if (!adc.SetReference(ads9324::ReferenceSource::Internal)) {
+    return false;
+  }
+  // Pulse the RESET pin (the port has ResetWrite()); fall back to SW_RST otherwise.
+  const bool reset_ok = Adc::HasHardwareReset() ? adc.HardwareReset() : adc.SoftwareReset();
+  // Both resets return the reference to RefselPin: select it again.
+  return reset_ok && adc.SetReference(ads9324::ReferenceSource::Internal);
+  // --8<-- [end:reset]
+}
+
 bool configure_task(Adc& adc) {
   // --8<-- [start:configure]
   // AIN1..AIN4: ±10 V differential, wide bandwidth for a fast current-sense signal.

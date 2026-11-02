@@ -8,6 +8,12 @@ code that used the affected API.
 
 ### Added
 
+- `HardwareReset()`: pulses the active-low RESET pin through an optional `ResetWrite(bool)` hook in the host port
+  (detected at compile time, `HasHardwareReset()`), waits t<sub>PU</sub> and reprograms the chip like
+  `SoftwareReset()` (SBASB22 section 7.4.1). `RESET_PULSE_US` (10 µs) sets the low time.
+- `SetReference(ReferenceSource)` / `GetReference()`: REFSEL pin, internal or external reference through ANA_CFG1
+  (SBASB22 section 7.3.6, Table 7-3).
+
 - Host-test workflow (`ci-host-tests.yml`): GCC and Clang build and run the protocol tests and compile the
   documentation's code.
 

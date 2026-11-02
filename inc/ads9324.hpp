@@ -137,6 +137,55 @@ public:
   bool SoftwareReset() noexcept;
 
   /**
+   * @brief Pulse the RESET pin, wait t<sub>PU</sub>, then bring the chip back to the driver's
+   * defaults.
+   *
+   * RESET is an active-low asynchronous input that resets all digital
+   * circuitry (SBASB22 §7.4.1, pin 32); the device needs t<sub>PU</sub> after
+   * a reset (§7.4.2, §5.7: 30 ms). Sequence: `ResetWrite(false)`, wait
+   * @ref ADS9324_CFG::RESET_PULSE_US, `ResetWrite(true)`, wait
+   * @ref ADS9324_CFG::POWER_ON_DELAY_MS, then the same reprogramming as
+   * @ref SoftwareReset (BANK_SEL, GEN_CFG3, PGA defaults; the reference
+   * source returns to @ref ReferenceSource::RefselPin).
+   *
+   * Needs the optional `ResetWrite(bool high)` hook on the host port
+   * (@ref HasHardwareReset).
+   *
+   * @retval true  Reset pulsed and the chip reprogrammed.
+   * @retval false The port has no `ResetWrite()`, or reprogramming failed
+   *               (then @ref IsInitialized is false).
+   */
+  bool HardwareReset() noexcept;
+
+  /** @brief Whether the host port provides the optional `ResetWrite(bool)` hook. */
+  [[nodiscard]] static constexpr bool HasHardwareReset() noexcept {
+    return detail::kHostDrivesReset<HostType>;
+  }
+
+  /**
+   * @brief Select the ADC reference (ANA_CFG1).
+   *
+   * At reset the REFSEL pin decides (@ref ReferenceSource::RefselPin). The
+   * other two settings set REFSEL_CTRL_DIS so the register overrides the pin
+   * (SBASB22 §7.3.6, Table 7-3, Table 8-14).
+   *
+   * @warning With @ref ReferenceSource::External and no reference on REFIO,
+   *          the device powers down (Table 7-3 note). After switching to the
+   *          internal reference, allow it to settle (up to t<sub>PU</sub> with
+   *          the recommended capacitors) before trusting samples.
+   *
+   * @param source Reference source.
+   * @retval true  ANA_CFG1 written; @ref GetReference returns @p source.
+   * @retval false Bus error; the cached source is unchanged.
+   */
+  bool SetReference(ReferenceSource source) noexcept;
+
+  /** @brief Last programmed @ref ReferenceSource (software cache; RefselPin after any reset). */
+  [[nodiscard]] ReferenceSource GetReference() const noexcept {
+    return reference_;
+  }
+
+  /**
    * @brief The PGA programming @ref EnsureInitialized and @ref SoftwareReset
    *        write to every channel (from the `CONFIG_ADS9324_*` defaults).
    */
@@ -394,6 +443,7 @@ private:
   bool data_on_sdout_ = ADS9324_CFG::DEFAULT_DATA_ON_SDOUT;
   ChannelCountMode ch_count_mode_ = ChannelCountMode::All16;
   uint8_t ch_sel_ = 0;  ///< ANA_CFG2 CH_SEL.
+  ReferenceSource reference_ = ReferenceSource::RefselPin; ///< ANA_CFG1.
   ChannelConfig ch_cfg_[kNumChannels]{};  ///< Last PGA programming per channel.
   uint32_t snapshots_ = 0;  ///< Successful snapshot count.
   uint32_t errors_ = 0;     ///< Failed init / timeout / programming count.

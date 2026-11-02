@@ -36,11 +36,15 @@ class MyHost : public ads9324::HostInterface<MyHost> {
 public:
   static constexpr int kConvst = 3;   // GPIO wired to CONVST (pin 50)
   static constexpr int kDrdy = 11;    // GPIO wired to DRDY/ALARM (pin 49)
+  static constexpr int kReset = 12;   // GPIO wired to RESET (pin 32); optional
 
   void ConvstWrite(bool high) { platform_gpio_write(kConvst, high); }
   bool DrdyRead() { return platform_gpio_read(kDrdy); }   // high = conversion done
   bool HasDrdy() const { return true; }                   // false: fixed wait instead
   void DelayUs(uint32_t us) { platform_delay_us(us); }
   void DelayMs(uint32_t ms) { platform_delay_us(ms * 1000U); }
+  void ResetWrite(bool high) {
+    platform_gpio_write(kReset, high);
+  } // optional: HardwareReset()
 };
 // --8<-- [end:port]

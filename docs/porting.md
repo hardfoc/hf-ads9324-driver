@@ -27,6 +27,7 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 | `HasDrdy() const` | `HostInterface` | `true` if DRDY is wired; `false` makes the driver wait `CONV_FALLBACK_US` instead |
 | `DelayUs(us)` | `HostInterface` | Block for at least `us` microseconds (1 µs steps during the DRDY poll) |
 | `DelayMs(ms)` | `HostInterface` | Block for at least `ms` milliseconds (30 ms power-up, 1 ms after reset) |
+| `ResetWrite(high)` | your host class, optional | Drive the RESET pin: `false` = low (chip held in reset), `true` = released. Only needed for `HardwareReset()` |
 
 ## The port
 
@@ -63,6 +64,13 @@ inverts it, invert it in `DrdyRead()`, not with `SetAlarmPin(..., true)`.
 
 Without DRDY (`HasDrdy()` returns `false`) the driver waits `CONV_FALLBACK_US` (10 µs) after the falling edge. The
 conversion takes 1.25 µs without oversampling, so the default leaves margin.
+
+## Optional reset pin
+
+If RESET (pin 32) is wired to a GPIO, add `void ResetWrite(bool high)` to the host class, as the port above does.
+The driver detects it at compile time (`ADS9324<...>::HasHardwareReset()`); it is not part of `HostInterface`, so a
+port without it compiles unchanged and `HardwareReset()` returns `false`. Hold RESET high from power-up, for
+example with a pull-up, so the chip is not held in reset before your code runs.
 
 ## Reference implementation
 

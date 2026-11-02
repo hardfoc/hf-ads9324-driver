@@ -71,7 +71,8 @@ inline constexpr uint16_t GEN_CFG3_EN_OFS_BINARY     = (1u << 12);  ///< Offset-
 inline constexpr uint16_t GEN_CFG3_EN_DIAG_FLAG      = (1u << 8);   ///< Diagnostic flag on data.
 inline constexpr uint16_t GEN_CFG3_ADC_DATA_SDOUT_EN = (1u << 1);   ///< Conversion data on SDOUT.
 
-inline constexpr uint16_t ANA_CFG1_REFSEL_CTRL_DIS = (1u << 1);  ///< Disable REFSEL pin override.
+inline constexpr uint16_t ANA_CFG1_REFSEL_CTRL_DIS =
+    (1u << 1); ///< Ignore the REFSEL pin; EXT_REF_EN selects.
 inline constexpr uint16_t ANA_CFG1_EXT_REF_EN      = (1u << 0);  ///< External reference enable.
 
 inline constexpr uint16_t DEVICE_STATUS_CALIB_BUSY = (1u << 3);  ///< Calibration in progress.
@@ -220,6 +221,23 @@ inline constexpr uint16_t DWC_CFG_STAT_RST = (1u << 15);  ///< Clear DWC status.
     v |= GEN_CFG3_ADC_DATA_SDOUT_EN;
   }
   return v;
+}
+
+/**
+ * @brief Build ANA_CFG1 for a reference source (SBASB22 Table 7-3, Table 8-14).
+ * @param ref Reference source.
+ * @return 0x0000 (REFSEL pin), 0x0002 (internal) or 0x0003 (external).
+ */
+[[nodiscard]] inline constexpr uint16_t AnaCfg1Value(ReferenceSource ref) noexcept {
+  switch (ref) {
+  case ReferenceSource::Internal:
+    return ANA_CFG1_REFSEL_CTRL_DIS;
+  case ReferenceSource::External:
+    return static_cast<uint16_t>(ANA_CFG1_REFSEL_CTRL_DIS | ANA_CFG1_EXT_REF_EN);
+  case ReferenceSource::RefselPin:
+  default:
+    return 0;
+  }
 }
 
 /**

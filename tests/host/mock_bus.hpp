@@ -147,6 +147,35 @@ public:
   bool HasDrdy() const {
     return false;
   }
-  void DelayUs(uint32_t) {}
-  void DelayMs(uint32_t) {}
+  uint64_t delayed_us = 0; ///< Total time the driver waited.
+  void DelayUs(uint32_t us) {
+    delayed_us += us;
+  }
+  void DelayMs(uint32_t ms) {
+    delayed_us += static_cast<uint64_t>(ms) * 1000u;
+  }
+};
+
+/// MockBus with the optional RESET-pin hook: releasing RESET resets every register.
+class MockBusWithReset : public MockBus {
+public:
+  bool reset_low = false;
+  int reset_pulses = 0;
+  uint64_t reset_low_us = 0;      ///< How long the last pulse held RESET low.
+  uint64_t reset_released_at = 0; ///< delayed_us when RESET went high.
+  long transfers_at_release = 0;
+
+  void ResetWrite(bool high) {
+    if (!high && !reset_low) {
+      reset_low = true;
+      reset_low_us = delayed_us;
+    } else if (high && reset_low) {
+      reset_low = false;
+      ++reset_pulses;
+      reset_low_us = delayed_us - reset_low_us;
+      reset_released_at = delayed_us;
+      transfers_at_release = transfers;
+      resetRegisters();
+    }
+  }
 };

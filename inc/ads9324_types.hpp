@@ -155,6 +155,18 @@ enum class ChannelCountMode : uint8_t {
 };
 
 /**
+ * @brief ADC reference source (ANA_CFG1 REFSEL_CTRL_DIS / EXT_REF_EN, SBASB22 Table 7-3).
+ */
+enum class ReferenceSource : uint8_t {
+  RefselPin =
+      0, ///< Reset default: the REFSEL pin decides (high = internal, low = external on REFIO).
+  Internal =
+      1, ///< Internal 4.096 V reference, REFSEL pin ignored (REFSEL_CTRL_DIS = 1, EXT_REF_EN = 0).
+  External =
+      2, ///< External reference on REFIO, REFSEL pin ignored (REFSEL_CTRL_DIS = 1, EXT_REF_EN = 1).
+};
+
+/**
  * @brief Function muxed onto the DRDY/ALARM pin (DRDY_ALARM_SEL[3:0]).
  */
 enum class AlarmPinMode : uint8_t {

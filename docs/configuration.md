@@ -19,6 +19,7 @@ Each macro below is `CONFIG_ADS9324_` followed by the name in the first column.
 | `SKIP_DEVICE_ID_CHECK` | `EnsureInitialized()` stops requiring DEVICE_ID = `0x0004`; check on |
 | `POWER_ON_DELAY_MS` | Wait before the first frame, in ms; 30 (t<sub>PU</sub>) |
 | `RESET_DELAY_MS` | Wait after the software reset, in ms; 1 |
+| `RESET_PULSE_US` | How long `HardwareReset()` holds RESET low, in µs; 10 (the datasheet gives no minimum) |
 | `DRDY_TIMEOUT_US` | DRDY poll budget after CONVST, in 1 µs steps; 1000 |
 | `CONV_FALLBACK_US` | Wait after CONVST when `HasDrdy()` is `false`, in µs; 10 |
 

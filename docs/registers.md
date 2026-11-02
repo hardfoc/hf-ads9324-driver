@@ -57,6 +57,7 @@ Common bank:
 | `0x08` | `PDN_CTL` | `DEVICE_PDN` (bit 0) in `SetPowerDown()` |
 | `0x0A` | `GEN_CFG3` | `EN_OFS_BINARY` (12), `DOUT_LANE_SEL` (5:4), `DOUT_LENGTH` (3:2), `ADC_DATA_SDOUT_EN` (1) |
 | `0x0C` | `DRDY_ALARM_SEL` | `ALRM_POL` (4), `DRDY_ALRM_SEL` (3:0) in `SetAlarmPin()` |
+| `0x10` | `ANA_CFG1` | `REFSEL_CTRL_DIS` (1), `EXT_REF_EN` (0) in `SetReference()` |
 | `0x11` | `ANA_CFG2` | `ADC_CH_SEL` (6:4), `ADC_NUM_SEL` (3:2) in `SetChannelCountMode()` |
 | `0x21` | `DEVICE_ID` | Read by `ReadDeviceId()`; `0x0004` on an ADS9324 |
 

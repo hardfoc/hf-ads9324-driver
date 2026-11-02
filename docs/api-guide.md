@@ -12,7 +12,7 @@ One `ADS9324<Spi, Host>` object per chip. Its methods fall into five groups:
 
 | Group | Methods |
 | --- | --- |
-| Bring-up | `EnsureInitialized()`, `IsInitialized()`, `SoftwareReset()`, `ReadDeviceId()` |
+| Bring-up | `EnsureInitialized()`, `IsInitialized()`, `SoftwareReset()`, `HardwareReset()`, `ReadDeviceId()`, `SetReference()` |
 | Channels | `ConfigureChannel()`, `ConfigureAllChannels()`, `GetChannelConfig()`, `SetChannelOffset()`, `SetChannelGain()` |
 | Data interface | `SetDataFormat()`, `GetDataFormat()`, `SetDigitalInterface()`, `SetChannelCountMode()` |
 | Pins and power | `SetAlarmPin()`, `ProgramWindowComparator()`, `SetPowerDown()` |
@@ -31,6 +31,27 @@ numbered 0 to 15 in the API (AIN1 to AIN16 on the chip).
 `EnsureInitialized()` runs the datasheet's 1-lane sequence ([Registers and SPI frames](registers.md#initialisation-sequence))
 and fails when DEVICE_ID is not `0x0004`. Every read and every snapshot needs it to have succeeded. Define
 `CONFIG_ADS9324_SKIP_DEVICE_ID_CHECK` to skip the ID check during bench bring-up ([Configuration](configuration.md)).
+
+## Reset and reference
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:reset"
+```
+
+`SoftwareReset()` writes SW_RST; `HardwareReset()` pulses the RESET pin (low for `RESET_PULSE_US`, then the 30 ms
+t<sub>PU</sub>) and needs the optional `ResetWrite()` hook in the [port](porting.md#optional-reset-pin)
+(`HasHardwareReset()` tells you at compile time). Either reset returns every register to its reset value; the
+driver then selects 1-lane SDOUT again and writes the channel defaults, so offsets, gains, the window comparator,
+the channel-count mode and the reference selection are back at their reset values. If that reprogramming fails,
+`IsInitialized()` turns `false`.
+
+`SetReference()` writes ANA_CFG1 (Table 7-3):
+
+| `ReferenceSource` | ANA_CFG1 | Reference |
+| --- | --- | --- |
+| `RefselPin` (reset) | `0x0000` | REFSEL pin: high = internal, low = external on REFIO |
+| `Internal` | `0x0002` | Internal 4.096 V, REFSEL ignored |
+| `External` | `0x0003` | External on REFIO, REFSEL ignored; without one the chip powers down |
 
 ## Configure the channels
 

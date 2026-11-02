@@ -86,6 +86,18 @@ inline constexpr uint32_t RESET_DELAY_MS = CONFIG_ADS9324_RESET_DELAY_MS;
 inline constexpr uint32_t RESET_DELAY_MS = 1;
 #endif
 
+#ifdef CONFIG_ADS9324_RESET_PULSE_US
+inline constexpr uint32_t RESET_PULSE_US = CONFIG_ADS9324_RESET_PULSE_US;
+#else
+/**
+ * @brief How long @ref ads9324::ADS9324::HardwareReset holds RESET low, in µs.
+ *
+ * SBASB22 gives no minimum low time for the asynchronous RESET input (§7.4.1);
+ * 10 µs is far above any digital reset filter.
+ */
+inline constexpr uint32_t RESET_PULSE_US = 10;
+#endif
+
 #ifdef CONFIG_ADS9324_DRDY_TIMEOUT_US
 inline constexpr uint32_t DRDY_TIMEOUT_US = CONFIG_ADS9324_DRDY_TIMEOUT_US;
 #else

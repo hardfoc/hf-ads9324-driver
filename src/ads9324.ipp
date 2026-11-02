@@ -156,6 +156,7 @@ bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
   bank_known_ = false;
   ch_count_mode_ = ChannelCountMode::All16;
   ch_sel_ = 0;
+  reference_ = ReferenceSource::RefselPin;
   for (uint8_t i = 0; i < kNumChannels; ++i) {
     ch_cfg_[i] = ChannelConfig{};
   }
@@ -167,7 +168,39 @@ bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
-  return resetChip() && applyChannelDefaults();
+  if (!resetChip() || !applyChannelDefaults()) {
+    initialized_ = false; // the chip may still be in its 8-lane reset mode
+    ++errors_;
+    return false;
+  }
+  return true;
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::HardwareReset() noexcept {
+  if constexpr (!detail::kHostDrivesReset<HostType>) {
+    return false;
+  } else {
+    host_.ResetWrite(false);
+    host_.DelayUs(ADS9324_CFG::RESET_PULSE_US);
+    host_.ResetWrite(true);
+    host_.DelayMs(ADS9324_CFG::POWER_ON_DELAY_MS); // t_PU after a device reset (§7.4.2)
+    if (!restoreAfterReset() || !applyChannelDefaults()) {
+      initialized_ = false;
+      ++errors_;
+      return false;
+    }
+    return true;
+  }
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SetReference(ReferenceSource source) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::ANA_CFG1, reg::AnaCfg1Value(source))) {
+    return false;
+  }
+  reference_ = source;
+  return true;
 }
 
 template <typename SpiType, typename HostType>
