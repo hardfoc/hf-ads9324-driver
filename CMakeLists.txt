@@ -5,9 +5,12 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(hf_ads9324_driver LANGUAGES CXX)
-
+# The settings file holds the version (also used by the ESP-IDF component, which has no project() of its own); the
+# project version, the package version and the generated ads9324_version.h behind GetDriverVersion*() all come
+# from it.
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/hf_ads9324_build_settings.cmake)
+
+project(hf_ads9324_driver VERSION ${HF_ADS9324_VERSION} LANGUAGES CXX)
 
 if(HF_ADS9324_SOURCE_FILES)
     add_library(${HF_ADS9324_TARGET_NAME} STATIC ${HF_ADS9324_SOURCE_FILES})

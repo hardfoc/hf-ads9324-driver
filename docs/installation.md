@@ -52,8 +52,12 @@ wrong. Your component then declares `REQUIRES hf_ads9324`.
 | Library | [`CMakeLists.txt`](../CMakeLists.txt) | Interface library, install and package files, host-test switch |
 | ESP-IDF | [`examples/esp32/components/hf_ads9324/CMakeLists.txt`](../examples/esp32/components/hf_ads9324/CMakeLists.txt) | IDF component wrapper over the same settings |
 
-The version is set once in the settings file and written into `ads9324_version.h` at configure time
-(`HF_ADS9324_VERSION_STRING`, `HF_ADS9324_VERSION_MAJOR` and so on).
+The version is set once in the settings file. It becomes the CMake project version (`PROJECT_VERSION`) and the
+package version, and is written into `ads9324_version.h` at configure time (`HF_ADS9324_VERSION_STRING`,
+`HF_ADS9324_VERSION_MAJOR` and so on); `ADS9324<...>::GetDriverVersion()` and `GetDriverVersionMajor()` /
+`Minor()` / `Patch()` return those macros. `ads9324.hpp` includes the generated header, so build through CMake or
+the ESP-IDF component (both generate it). The host tests fail when the getters, the ESP-IDF component manifest
+(`idf_component.yml`) or the `Doxyfile` disagree with the settings file.
 
 ## Compile-time switches
 

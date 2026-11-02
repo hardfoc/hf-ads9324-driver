@@ -46,6 +46,13 @@ code that used the affected API.
   range. Each word is now stored under its real channel and `valid_mask` marks those channels. New helpers
   `reg::FrameChannel()`, `reg::FrameChannelMask()` and `reg::FrameChannelCount()`.
 
+- `GetDriverVersionMajor()`, `GetDriverVersionMinor()` and `GetDriverVersionPatch()` returned the literals 1, 0, 0
+  whatever the project version. They now return the macros of the generated `ads9324_version.h`, which comes from
+  the version in `cmake/hf_ads9324_build_settings.cmake`, now also the CMake `project()` version. New
+  `GetDriverVersion()` returns the version string. `ads9324.hpp` includes `ads9324_version.h`, so the include path
+  must contain the generated header (the CMake target and the ESP-IDF component provide it). Host tests check the
+  getters, `idf_component.yml` and the `Doxyfile` against the project version.
+
 ### Changed
 
 - **BREAKING** `SetChannelGain(channel, gain)` takes a signed `int16_t` (was `uint16_t`): `GAN_AINn` is 14-bit two's
