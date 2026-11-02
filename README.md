@@ -58,7 +58,10 @@ int read_all_16_channels(MySpi& spi, MyHost& host) {
 - Brings the chip up with the datasheet's 1-lane SDOUT sequence and checks DEVICE_ID (`EnsureInitialized()`).
 - Sets each channel's range (±2.5 V to ±12.5 V), input type (differential, single-ended, open-wire safe) and
   filter bandwidth, and keeps them to convert counts to volts.
-- Programs the per-channel offset and gain correction registers.
+- Programs the per-channel offset and gain correction registers and runs the on-chip ADC calibration
+  (`RunAdcCalibration()`).
+- Block-average oversampling, 2 to 128 samples, with the internal or the external clock (`SetOversampling()`).
+- Selects the reference (`SetReference()`) and resets the chip by SW_RST or the RESET pin (`HardwareReset()`).
 - Reads all 16 channels from one CONVST edge in a single SPI burst (`ReadSnapshot()`), with DRDY polling or a timed
   wait.
 - Window comparator, DRDY/ALARM mux, data format and power-down.

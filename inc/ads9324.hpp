@@ -130,7 +130,8 @@ public:
    * driver then selects the common bank, rewrites GEN_CFG3 from the cached
    * data format / lane settings, and writes the compile-time PGA defaults to
    * all channels; the channel-count mode cache returns to All16. Offsets,
-   * gains, window comparators and the alarm pin are back at their reset values.
+   * gains, window comparators, the alarm pin, the oversampling filter and
+   * ADC_CAL are back at their reset values.
    *
    * @retval true  Reset and reprogramming succeeded.
    * @retval false Register write failed.

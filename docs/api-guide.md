@@ -43,7 +43,8 @@ and fails when DEVICE_ID is not `0x0004`. Every read and every snapshot needs it
 t<sub>PU</sub>) and needs the optional `ResetWrite()` hook in the [port](porting.md#optional-reset-pin)
 (`HasHardwareReset()` tells you at compile time). Either reset returns every register to its reset value; the
 driver then selects 1-lane SDOUT again and writes the channel defaults, so offsets, gains, the window comparator,
-the channel-count mode and the reference selection are back at their reset values. If that reprogramming fails,
+the channel-count mode, the reference selection, the oversampling filter and the ADC_CAL correction are back at their
+reset values. If that reprogramming fails,
 `IsInitialized()` turns `false`.
 
 `SetReference()` writes ANA_CFG1 (Table 7-3):

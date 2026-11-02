@@ -76,6 +76,8 @@ sequenceDiagram
 | Wait after software reset | 1 ms (optional, Table 7-18) | `RESET_DELAY_MS` = 1 |
 | CONVST high and low time | at least 50 ns each | The driver holds CONVST high for 1 µs |
 | Conversion time t<sub>CONV</sub>, no oversampling | 1.25 µs | DRDY poll, or `CONV_FALLBACK_US` = 10 µs without DRDY |
+| Conversion with oversampling ratio *N* | *N* conversions (output rate 1 MSPS / *N*, Table 7-8) | Internal clock: DRDY timeout and fallback wait times *N*; external clock: *N* CONVST pulses 2 µs apart |
+| ADC_CAL time T<sub>WAIT</sub>, single-shot | 125 ms (Table 7-7) | `RunAdcCalibration()` waits `ADC_CAL_WAIT_MS`, then polls CALIB_BUSY |
 | CONVST rate f<sub>CONVST</sub> | 0.1 MHz to 1 MHz | See the note below |
 
 !!! note "Sampling rate and the specifications"

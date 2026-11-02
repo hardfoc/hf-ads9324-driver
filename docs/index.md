@@ -60,8 +60,10 @@ Driver mode
   settings. See [API guide](api-guide.md).
 - **Bring-up in one call.** `EnsureInitialized()` waits for the supplies, resets the chip, selects 1-lane SDOUT
   output and checks DEVICE_ID. See [Quickstart](quickstart.md).
-- **A front end per channel.** Range, input type, filter bandwidth, offset and gain for each of the 16 inputs.
-  See [PGA and calibration](pga-and-calibration.md).
+- **A front end per channel.** Range, input type, filter bandwidth, offset and gain for each of the 16 inputs,
+  plus the on-chip ADC calibration. See [PGA and calibration](pga-and-calibration.md).
+- **Oversampling.** The block-average filter, 2 to 128 samples per snapshot. See
+  [API guide](api-guide.md#average-with-oversampling).
 - **Simultaneous snapshots in volts.** `ReadSnapshot()` pulses CONVST, waits for DRDY and returns 16 counts and
   16 voltages, each scaled with its channel's range. See [Registers and SPI frames](registers.md).
 - **Zero-overhead portability.** The port is two CRTP classes: no virtual calls, no heap, no RTOS dependency.
