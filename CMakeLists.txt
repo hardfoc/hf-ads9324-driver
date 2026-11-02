@@ -41,13 +41,11 @@ if(HF_ADS9324_ENABLE_WARNINGS)
     endif()
 endif()
 
-option(HF_ADS9324_BUILD_HOST_TESTS "Build host protocol unit tests" OFF)
+# ── Host unit tests and documentation snippets (mock transport; no hardware) ──
+option(HF_ADS9324_BUILD_HOST_TESTS "Build the host unit tests and doc snippets in tests/" OFF)
 if(HF_ADS9324_BUILD_HOST_TESTS)
     enable_testing()
-    add_executable(hf_ads9324_host_tests tests/host/test_ads9324_protocol.cpp)
-    target_link_libraries(hf_ads9324_host_tests PRIVATE hf::ads9324)
-    target_compile_features(hf_ads9324_host_tests PRIVATE cxx_std_20)
-    add_test(NAME hf_ads9324_protocol COMMAND hf_ads9324_host_tests)
+    add_subdirectory(tests)
 endif()
 
 include(GNUInstallDirs)

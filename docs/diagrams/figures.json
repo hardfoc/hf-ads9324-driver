@@ -1,0 +1,14 @@
+{
+  "driver-layers": {
+    "title": "Three layers, one of them yours",
+    "alt": "Layer diagram: the application calls the hardware-agnostic ADS9324 driver and its methods, which use the SpiInterface and HostInterface contracts, which call the platform port you write, which drives the SPI bus, CONVST and DRDY of the ADS9324.",
+    "description": "From top to bottom. Your application talks to one ADS9324<Spi, Host> object, whose public methods are listed from inc/ads9324.hpp. The core packs 24-bit register frames, selects register banks, merges the PGA nibbles and unpacks conversion bursts. It reaches the hardware only through two CRTP contracts in inc/ads9324_spi_interface.hpp: SpiInterface (one transfer method) and HostInterface (CONVST, DRDY and two delays). The platform port is the only code you write: two small classes, or one class implementing both. Below it is the hardware.",
+    "profile": "overview",
+    "width": 1200,
+    "source": "docs/diagrams/figures/driver-layers.py",
+    "sources": [
+      "inc/ads9324.hpp:ADS9324 public methods",
+      "inc/ads9324_spi_interface.hpp:SpiInterface, HostInterface"
+    ]
+  }
+}
