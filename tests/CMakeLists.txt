@@ -69,3 +69,10 @@ target_link_libraries(hf_ads9324_doc_snippets PRIVATE hf::ads9324)
 target_include_directories(hf_ads9324_doc_snippets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/docs)
 target_compile_features(hf_ads9324_doc_snippets PRIVATE cxx_std_20)
 target_compile_options(hf_ads9324_doc_snippets PRIVATE -Wall -Wextra -Wpedantic)
+
+# `cmake --install` must ship every header the public headers include (ads9324.ipp, the generated
+# ads9324_version.h) and export the documented target hf::ads9324. Installs into the build tree and builds a
+# consumer with find_package().
+add_test(NAME hf_ads9324_install_consumer
+  COMMAND ${CMAKE_COMMAND} -DBIN=${PROJECT_BINARY_DIR} -DSRC=${PROJECT_SOURCE_DIR}
+          -DCXX=${CMAKE_CXX_COMPILER} -P ${CMAKE_CURRENT_SOURCE_DIR}/install_consumer.cmake)

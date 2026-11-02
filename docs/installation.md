@@ -34,8 +34,14 @@ the generated version header) and requires C++20 (`cxx_std_20`), so your target 
 | `HF_ADS9324_ENABLE_WARNINGS` | `OFF` | Adds `-Wall -Wextra -Wpedantic` to targets that link the driver |
 | `HF_ADS9324_BUILD_HOST_TESTS` | `OFF` | Builds the host tests and the documentation snippets in `tests/` ([Testing and CI](testing.md)) |
 
-The project also installs a CMake package: after `cmake --install`, `find_package(hf_ads9324)` provides the same
-`hf::ads9324` target.
+The project also installs a CMake package: `cmake --install` puts every header in `include/` (the `inc/` headers,
+`ads9324.ipp` and the generated `ads9324_version.h`), and `find_package(hf_ads9324 CONFIG)` then provides the same
+`hf::ads9324` target (`hf::hf_ads9324`, the name earlier installs exported, still works):
+
+```cmake
+find_package(hf_ads9324 1.0 CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE hf::ads9324)
+```
 
 ## ESP-IDF
 

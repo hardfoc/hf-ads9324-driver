@@ -21,6 +21,7 @@ ctest --test-dir build-host --output-on-failure
 | [`tests/host/test_ads9324_config_defaults.cpp`](../tests/host/test_ads9324_config_defaults.cpp) | Built with non-default `CONFIG_ADS9324_*` values: initialisation and reset write them to the chip |
 | [`tests/host/test_ads9324_version.cpp`](../tests/host/test_ads9324_version.cpp) | `GetDriverVersion*()` equal the project version, and follow a generated header with another version |
 | [`tests/check_version_copy.cmake`](../tests/check_version_copy.cmake) | `idf_component.yml` and `Doxyfile` carry the project version |
+| [`tests/install_consumer.cmake`](../tests/install_consumer.cmake) | `cmake --install` into the build tree, then a [`find_package()` consumer](../tests/install_consumer/main.cpp) that includes every public header and links `hf::ads9324` |
 
 ## Documentation snippets
 

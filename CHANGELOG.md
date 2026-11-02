@@ -53,6 +53,11 @@ code that used the affected API.
   must contain the generated header (the CMake target and the ESP-IDF component provide it). Host tests check the
   getters, `idf_component.yml` and the `Doxyfile` against the project version.
 
+- `cmake --install` did not install `ads9324.ipp`, which `ads9324.hpp` includes, and exported the target as
+  `hf::hf_ads9324` while the documentation links `hf::ads9324`: an installed package could not be used. The `.ipp`
+  is now installed next to the headers and the target is exported as `hf::ads9324` (`hf::hf_ads9324` stays as an
+  alias). New host test `hf_ads9324_install_consumer` installs the package and builds a `find_package()` consumer.
+
 ### Changed
 
 - **BREAKING** `SetChannelGain(channel, gain)` takes a signed `int16_t` (was `uint16_t`): `GAN_AINn` is 14-bit two's

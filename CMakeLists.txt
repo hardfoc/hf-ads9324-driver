@@ -34,6 +34,8 @@ else()
 endif()
 
 add_library(hf::ads9324 ALIAS ${HF_ADS9324_TARGET_NAME})
+# Installed copies export the same name: hf:: + EXPORT_NAME = hf::ads9324 (was hf::hf_ads9324).
+set_target_properties(${HF_ADS9324_TARGET_NAME} PROPERTIES EXPORT_NAME ads9324)
 
 set_target_properties(${HF_ADS9324_TARGET_NAME} PROPERTIES VERSION ${HF_ADS9324_VERSION} SOVERSION ${HF_ADS9324_VERSION_MAJOR})
 
@@ -61,8 +63,11 @@ install(TARGETS ${HF_ADS9324_TARGET_NAME} EXPORT hf_ads9324Targets
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+# Every header the public headers include, flat in include/: inc/*.hpp, src/ads9324.ipp (included at the end of
+# ads9324.hpp) and the generated ads9324_version.h.
 install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h" PATTERN "*.h.in" EXCLUDE)
+install(DIRECTORY src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.ipp")
 install(FILES "${HF_ADS9324_VERSION_HEADER}" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(EXPORT hf_ads9324Targets

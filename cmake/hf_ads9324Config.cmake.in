@@ -5,4 +5,10 @@
 
 include("${CMAKE_CURRENT_LIST_DIR}/hf_ads9324Targets.cmake")
 
+# Earlier installs exported the target as hf::hf_ads9324; keep that name working.
+if(TARGET hf::ads9324 AND NOT TARGET hf::hf_ads9324)
+  add_library(hf::hf_ads9324 INTERFACE IMPORTED)
+  set_target_properties(hf::hf_ads9324 PROPERTIES INTERFACE_LINK_LIBRARIES hf::ads9324)
+endif()
+
 check_required_components(hf_ads9324)
