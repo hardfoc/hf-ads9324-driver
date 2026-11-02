@@ -10,7 +10,8 @@
 # Pages: docs/, order: docs/.nav.yml, rules: docs/DOCS-STYLE-GUIDE.md in hf-general-ci-tools.
 site_name: ADS9324 Driver
 site_description: >-
-  Hardware-agnostic C++20 driver for the TI ADS9324 16-channel, 16-bit simultaneous-sampling SAR ADC (SPI). Part of the HardFOC ecosystem.
+  C++20 hardware-agnostic driver for the Texas Instruments ADS9324 16-channel, 16-bit simultaneous-sampling SAR
+  ADC: per-channel PGA, filter and calibration, simultaneous snapshots over SPI.
 repo_url: https://github.com/hardfoc/hf-ads9324-driver
 
 theme:
