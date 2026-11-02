@@ -230,7 +230,7 @@ ChannelConfig ADS9324<SpiType, HostType>::GetChannelConfig(uint8_t channel) cons
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetChannelOffset(uint8_t channel, int16_t ofs_10bit) noexcept {
-  if (channel >= kNumChannels) {
+  if (channel >= kNumChannels || ofs_10bit < kOffsetMin || ofs_10bit > kOffsetMax) {
     return false;
   }
   const uint16_t coded = static_cast<uint16_t>(ofs_10bit) & 0x03FFu;
@@ -239,12 +239,13 @@ bool ADS9324<SpiType, HostType>::SetChannelOffset(uint8_t channel, int16_t ofs_1
 }
 
 template <typename SpiType, typename HostType>
-bool ADS9324<SpiType, HostType>::SetChannelGain(uint8_t channel, uint16_t gan_14bit) noexcept {
-  if (channel >= kNumChannels) {
+bool ADS9324<SpiType, HostType>::SetChannelGain(uint8_t channel, int16_t gain) noexcept {
+  if (channel >= kNumChannels || gain < kGainMin || gain > kGainMax) {
     return false;
   }
+  // 14-bit two's complement: the low 14 bits of the 16-bit value (bits 15:14 are reserved, 0).
   return writeRegister(reg::BankForChannel(channel), reg::GanAddr(reg::LocalChannel(channel)),
-                       static_cast<uint16_t>(gan_14bit & 0x3FFFu));
+                       static_cast<uint16_t>(static_cast<uint16_t>(gain) & 0x3FFFu));
 }
 
 template <typename SpiType, typename HostType>

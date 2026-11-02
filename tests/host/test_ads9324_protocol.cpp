@@ -307,6 +307,49 @@ void test_channel_mode_order() {
   CHECK(pair.count[12] == 0x1001);
 }
 
+void test_signed_gain_and_offset() {
+  using namespace ads9324;
+  MockBus bus;
+  Adc adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+  uint16_t* gan = &bus.mem[1][reg::GAN_AIN1]; // AIN1
+  uint16_t* ofs = &bus.mem[1][reg::OFS_AIN1];
+
+  // SBASB22 Table 7-6: GAN code <-> correction.
+  CHECK(adc.SetChannelGain(0, 8191));
+  CHECK(*gan == 0x1FFF); // +0.124985
+  CHECK(adc.SetChannelGain(0, 3277));
+  CHECK(*gan == 0x0CCD); // +0.050003
+  CHECK(adc.SetChannelGain(0, -3277));
+  CHECK(*gan == 0x3333); // -0.050003
+  CHECK(adc.SetChannelGain(0, kGainMin));
+  CHECK(*gan == 0x2000); // -0.125
+  CHECK(adc.SetChannelGain(0, -328));
+  CHECK(*gan == 0x3EB8);
+  CHECK(adc.SetChannelGain(0, 0));
+  CHECK(*gan == 0x0000);
+
+  // Out of the 14-bit field: rejected, register untouched (was silently truncated).
+  CHECK(!adc.SetChannelGain(0, 8192)); // would have written 0x2000 = -0.125
+  CHECK(!adc.SetChannelGain(0, -8193));
+  CHECK(!adc.SetChannelGain(0, 0x3333)); // 13107: not a sign-extended 14-bit value
+  CHECK(*gan == 0x0000);
+
+  // Callers of the earlier uint16_t API that cast a negative value keep working.
+  const auto legacy = static_cast<uint16_t>(-328);
+  CHECK(adc.SetChannelGain(0, static_cast<int16_t>(legacy)));
+  CHECK(*gan == 0x3EB8);
+
+  // SBASB22 Table 7-5: OFS code <-> quarter LSBs.
+  CHECK(adc.SetChannelOffset(0, kOffsetMax));
+  CHECK(*ofs == 0x1FF);
+  CHECK(adc.SetChannelOffset(0, kOffsetMin));
+  CHECK(*ofs == 0x200);
+  CHECK(!adc.SetChannelOffset(0, 512)); // would have written 0x200 = -128 LSB
+  CHECK(!adc.SetChannelOffset(0, -513));
+  CHECK(*ofs == 0x200);
+}
+
 }  // namespace
 
 int main() {
@@ -315,6 +358,7 @@ int main() {
   test_bus_errors_propagate();
   test_legacy_void_port();
   test_channel_mode_order();
+  test_signed_gain_and_offset();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

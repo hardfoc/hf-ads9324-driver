@@ -21,6 +21,13 @@ code that used the affected API.
 
 ### Changed
 
+- **BREAKING** `SetChannelGain(channel, gain)` takes a signed `int16_t` (was `uint16_t`): `GAN_AINn` is 14-bit two's
+  complement (SBASB22 Table 7-6, Table 8-40). Values outside `kGainMin` (−8192) to `kGainMax` (+8191) are rejected
+  with `false` instead of being truncated to 14 bits (8192 used to become −8192). Code that passed a negative value
+  cast to `uint16_t` keeps working; code that passed the raw 14-bit pattern of a negative value (e.g. `0x3333`)
+  must pass the signed value (−3277).
+- `SetChannelOffset()` rejects values outside the 10-bit field, `kOffsetMin` (−512) to `kOffsetMax` (+511), instead
+  of truncating them (512 used to become −128 LSB).
 - The SPI port's `transfer()` now returns `bool` (`true` = bytes clocked, `false` = bus error) and the driver
   propagates it: configuration calls return `false`, `ReadDeviceId()` returns 0, `ReadSnapshot()` /
   `ReadChannel()` return `Error::SpiError`. Cached settings (data format, lanes, channel-count mode, PGA) change

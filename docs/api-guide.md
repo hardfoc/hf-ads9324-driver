@@ -58,7 +58,8 @@ driver agree. [PGA and calibration](pga-and-calibration.md) explains the encodin
 --8<-- "tests/docs/api_tasks.cpp:calibrate"
 ```
 
-The offset is in quarter LSBs (−128 to +127.75 LSB); the gain multiplies by `1 + GAN / 65536` (about ±12.5 %).
+The offset is in quarter LSBs, −512 to +511 (−128 to +127.75 LSB); the gain is signed, −8192 to +8191, and
+multiplies by `1 + GAN / 65536` (about ±12.5 %). A value outside its field returns `false` and writes nothing.
 Measure with the real source impedance connected: the correction is for the whole signal chain.
 
 ## Read
@@ -145,7 +146,7 @@ reference takes up to 30 ms to settle again (with 1 µF on REFCAP).
 | `Error::Timeout` | DRDY did not rise within `DRDY_TIMEOUT_US` (1000 µs) | CONVST wiring, DRDY polarity, `SetAlarmPin()` |
 | `Error::InvalidChannel` | `ReadChannel()` with a channel above 15 | Use 0 to 15 |
 | `Error::SpiError` | The port's `transfer()` returned `false`, or the requested channel was not in the burst | Check the bus; with a reduced channel-count mode, read a channel the chip sends ([table](#read-fewer-channels)) |
-| A configuration call returns `false` | Channel above 15, or the port's `transfer()` returned `false` | Use 0 to 15; check the bus |
+| A configuration call returns `false` | Channel above 15, a value outside its register field, or the port's `transfer()` returned `false` | Use 0 to 15 and the documented ranges; check the bus |
 
 `GetDiagnostics()` returns the software counters (`snapshots`, `errors`) and the cached interface settings without
 touching the bus.

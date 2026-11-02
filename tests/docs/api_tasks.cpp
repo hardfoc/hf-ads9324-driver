@@ -47,16 +47,15 @@ bool configure_task(Adc& adc) {
 
 bool calibrate_task(Adc& adc) {
   // --8<-- [start:calibrate]
-  // Offset: 10-bit two's complement in quarter LSBs, added before the gain (Equation 1).
-  // Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.
+  // Offset: 10-bit two's complement in quarter LSBs (-512..511), added before the gain (Equation
+  // 1). Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.
   if (!adc.SetChannelOffset(0, -40)) {
     return false;
   }
 
-  // Gain: 14-bit two's complement; the chip multiplies by (1 + GAN / 65536).
-  // Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. The driver keeps the low 14 bits.
-  const int16_t gan = -328;
-  if (!adc.SetChannelGain(0, static_cast<uint16_t>(gan))) {
+  // Gain: 14-bit two's complement (-8192..8191); the chip multiplies by (1 + GAN / 65536).
+  // Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. Values outside the field return false.
+  if (!adc.SetChannelGain(0, -328)) {
     return false;
   }
   // --8<-- [end:calibrate]

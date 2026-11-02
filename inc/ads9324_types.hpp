@@ -41,6 +41,18 @@ inline constexpr uint16_t kMaxCountUnsigned = 65535u;
  */
 inline constexpr uint16_t kDeviceIdAds9324 = 0x0004u;
 
+/** Smallest OFS_AINx value: −512 quarter LSBs = −128 LSB (10-bit two's complement, SBASB22 Table
+ * 7-5). */
+inline constexpr int16_t kOffsetMin = -512;
+/** Largest OFS_AINx value: +511 quarter LSBs = +127.75 LSB. */
+inline constexpr int16_t kOffsetMax = 511;
+
+/** Smallest GAN_AINx value: −8192, multiplier 0.875 (14-bit two's complement, SBASB22 Table 7-6).
+ */
+inline constexpr int16_t kGainMin = -8192;
+/** Largest GAN_AINx value: +8191, multiplier 1.124985. */
+inline constexpr int16_t kGainMax = 8191;
+
 /**
  * @brief Driver-level error codes returned in ReadResult and Snapshot.
  */

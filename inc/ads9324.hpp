@@ -164,20 +164,28 @@ public:
    * Hardware applies `(code×4 + OFS) / 4` (SBASB22 Equation 1).
    *
    * @param channel   0–15.
-   * @param ofs_10bit Signed offset; only the low 10 bits are written.
+   * @param ofs_10bit Signed offset in quarter LSBs, @ref kOffsetMin to
+   *                  @ref kOffsetMax (the 10-bit two's-complement field).
    * @retval true  Write accepted.
-   * @retval false Invalid channel or SPI failed.
+   * @retval false Invalid channel, @p ofs_10bit out of range, or SPI failed.
    */
   bool SetChannelOffset(uint8_t channel, int16_t ofs_10bit) noexcept;
 
   /**
-   * @brief Program 14-bit gain correction (GAN_AINx). Correction = GAN / 65536.
-   * @param channel   0–15.
-   * @param gan_14bit Unsigned gain; only the low 14 bits are written.
+   * @brief Program the gain correction (GAN_AINx).
+   *
+   * GAN_AINn[13:0] is two's complement; the chip multiplies the
+   * offset-corrected code by `1 + gain / 65536` (SBASB22 §7.3.9, Equation 2,
+   * Table 8-40), so the multiplier spans 0.875 to about 1.125.
+   *
+   * @param channel 0–15.
+   * @param gain    Signed correction, @ref kGainMin (−8192) to @ref kGainMax
+   *                (+8191). A `uint16_t` holding a negative value cast to
+   *                unsigned (the earlier API) converts back to the same value.
    * @retval true  Write accepted.
-   * @retval false Invalid channel or SPI failed.
+   * @retval false Invalid channel, @p gain out of range, or SPI failed.
    */
-  bool SetChannelGain(uint8_t channel, uint16_t gan_14bit) noexcept;
+  bool SetChannelGain(uint8_t channel, int16_t gain) noexcept;
 
   /**
    * @brief Set conversion coding and rewrite GEN_CFG3.

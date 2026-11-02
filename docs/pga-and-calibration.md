@@ -79,22 +79,30 @@ output = (code × 4 + OFS) / 4
 | `0x3FF` (−1) | −0.25 LSB |
 | `0x200` (−512) | −128 LSB |
 
-To remove an offset of *e* LSB measured with the input shorted, write −4 × *e*. The range is −128 to +127.75 LSB.
+To remove an offset of *e* LSB measured with the input shorted, write −4 × *e*. The range is −128 to +127.75 LSB:
+`ofs` must be between `kOffsetMin` (−512) and `kOffsetMax` (+511), otherwise the call returns `false` and writes
+nothing.
 
 ## Gain correction
 
-`SetChannelGain(channel, gan)` writes the 14-bit two's-complement `GAN_AINn` register. The chip multiplies the
+`SetChannelGain(channel, gan)` writes the 14-bit two's-complement `GAN_AINn` register; `gan` is a signed
+`int16_t`. The chip multiplies the
 offset-corrected code by `1 + GAN / 65536` (register description of `GAN_AINn`, Equation 2):
 
 | `GAN` | Multiplier |
 | --- | --- |
-| `0x0000` | 1.000000 (reset value) |
-| `0x1FFF` (+8191) | 1.124985 |
-| `0x2000` (−8192) | 0.875000 |
+| `gan` | `GAN` (register) | Multiplier |
+| --- | --- | --- |
+| 0 | `0x0000` | 1.000000 (reset value) |
+| +3277 | `0x0CCD` | 1.050003 |
+| −3277 | `0x3333` | 0.949997 |
+| +8191 (`kGainMax`) | `0x1FFF` | 1.124985 |
+| −8192 (`kGainMin`) | `0x2000` | 0.875000 |
 
 The range is about ±12.5 %. For a channel that reads a factor *k* too high, write `GAN = −(k − 1) / k × 65536`,
-close to `−(k − 1) × 65536` for small errors. `gan` is a `uint16_t`: pass a negative value cast to `uint16_t`; the
-driver keeps the low 14 bits. The [API guide](api-guide.md#calibrate-offset-and-gain) shows both calls.
+close to `−(k − 1) × 65536` for small errors. A value outside −8192 to +8191 makes the call return `false` and
+write nothing; pass the signed value, not the register pattern (−3277, not `0x3333`). The
+[API guide](api-guide.md#calibrate-offset-and-gain) shows both calls.
 
 ## On-chip calibration
 
