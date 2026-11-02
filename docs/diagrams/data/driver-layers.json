@@ -3,6 +3,7 @@
     "EnsureInitialized",
     "IsInitialized",
     "SoftwareReset",
+    "DefaultChannelConfig",
     "ReadDeviceId",
     "ConfigureChannel",
     "ConfigureAllChannels",

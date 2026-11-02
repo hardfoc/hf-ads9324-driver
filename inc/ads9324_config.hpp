@@ -28,24 +28,29 @@ namespace ADS9324_CFG {
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus12V5;
 #elif defined(CONFIG_ADS9324_RANGE_10V)
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus10V;
+#elif defined(CONFIG_ADS9324_RANGE_6V25)
+inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus6V25;
 #elif defined(CONFIG_ADS9324_RANGE_2V5)
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus2V5;
 #else
-/** @brief Default PGA full-scale applied to every channel at construction. */
+/** @brief Default PGA full-scale written to every channel by EnsureInitialized() / SoftwareReset().
+ */
 inline constexpr ads9324::InputRange DEFAULT_RANGE = ads9324::InputRange::PlusMinus5V;
 #endif
 
 #ifdef CONFIG_ADS9324_SINGLE_ENDED
 inline constexpr ads9324::InputType DEFAULT_INPUT_TYPE = ads9324::InputType::SingleEnded;
 #else
-/** @brief Default PGA topology (differential unless CONFIG_ADS9324_SINGLE_ENDED). */
+/** @brief Default PGA topology written at initialisation (differential unless
+ * CONFIG_ADS9324_SINGLE_ENDED). */
 inline constexpr ads9324::InputType DEFAULT_INPUT_TYPE = ads9324::InputType::Differential;
 #endif
 
 #ifdef CONFIG_ADS9324_PGA_WIDE
 inline constexpr ads9324::PgaBandwidth DEFAULT_BANDWIDTH = ads9324::PgaBandwidth::Wide;
 #else
-/** @brief Default analog LPF (~25.5 kHz unless CONFIG_ADS9324_PGA_WIDE). */
+/** @brief Default analog LPF written at initialisation (~25.5 kHz unless CONFIG_ADS9324_PGA_WIDE).
+ */
 inline constexpr ads9324::PgaBandwidth DEFAULT_BANDWIDTH = ads9324::PgaBandwidth::Low;
 #endif
 

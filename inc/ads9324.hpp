@@ -44,9 +44,10 @@
 
 #define ADS9324_HEADER_INCLUDED
 
-#include <cstdint>
-#include <cstddef>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <initializer_list>
 
 #include "ads9324_config.hpp"
 #include "ads9324_registers.hpp"
@@ -89,8 +90,9 @@ public:
    * @param spi  Platform SPI (must outlive this object).
    * @param host Platform CONVST/DRDY/delay (must outlive this object).
    *
-   * Channel configs are initialized from @ref ADS9324_CFG defaults. Call
-   * @ref EnsureInitialized before conversion.
+   * The channel cache starts at the chip's reset state (±5 V differential,
+   * low bandwidth); @ref EnsureInitialized writes the @ref ADS9324_CFG
+   * defaults to the chip and the cache. Call it before conversion.
    */
   explicit ADS9324(SpiType& spi, HostType& host) noexcept;
 
@@ -98,11 +100,15 @@ public:
   ADS9324& operator=(const ADS9324&) = delete;
 
   /**
-   * @brief Power-on delay, optional SW reset, 1-lane SDOUT mode, DEVICE_ID check.
+   * @brief Power-on delay, SW reset, 1-lane SDOUT mode, DEVICE_ID check, PGA defaults.
    *
-   * Sequence: wait @ref ADS9324_CFG::POWER_ON_DELAY_MS, @ref SoftwareReset,
-   * BANK_SEL=common, @ref applyDigitalInterface, optional DEVICE_ID compare
-   * to @ref kDeviceIdAds9324.
+   * Sequence (SBASB22 Table 7-18): wait @ref ADS9324_CFG::POWER_ON_DELAY_MS,
+   * GEN_CFG1.SW_RST, wait @ref ADS9324_CFG::RESET_DELAY_MS, BANK_SEL=common,
+   * GEN_CFG3 (1-lane SDOUT), optional DEVICE_ID compare to
+   * @ref kDeviceIdAds9324, then the compile-time PGA defaults
+   * (@ref ADS9324_CFG::DEFAULT_RANGE, @ref ADS9324_CFG::DEFAULT_INPUT_TYPE,
+   * @ref ADS9324_CFG::DEFAULT_BANDWIDTH) on all 16 channels, so the chip and
+   * @ref GetChannelConfig agree.
    *
    * @param force Re-run even if already initialized.
    * @retval true  Device is ready for PGA programming and snapshots.
@@ -117,11 +123,27 @@ public:
   [[nodiscard]] bool IsInitialized() const noexcept { return initialized_; }
 
   /**
-   * @brief Software reset (GEN_CFG1.SW_RST) and re-apply digital interface.
-   * @retval true  Reset write and GEN_CFG3 reprogramming succeeded.
+   * @brief Software reset (GEN_CFG1.SW_RST), then bring the chip back to the driver's defaults.
+   *
+   * The reset returns every register to its reset value (SBASB22 §7.4.1). The
+   * driver then selects the common bank, rewrites GEN_CFG3 from the cached
+   * data format / lane settings, and writes the compile-time PGA defaults to
+   * all channels; the channel-count mode cache returns to All16. Offsets,
+   * gains, window comparators and the alarm pin are back at their reset values.
+   *
+   * @retval true  Reset and reprogramming succeeded.
    * @retval false Register write failed.
    */
   bool SoftwareReset() noexcept;
+
+  /**
+   * @brief The PGA programming @ref EnsureInitialized and @ref SoftwareReset
+   *        write to every channel (from the `CONFIG_ADS9324_*` defaults).
+   */
+  [[nodiscard]] static constexpr ChannelConfig DefaultChannelConfig() noexcept {
+    return ChannelConfig{ADS9324_CFG::DEFAULT_INPUT_TYPE, ADS9324_CFG::DEFAULT_RANGE,
+                         ADS9324_CFG::DEFAULT_BANDWIDTH, false};
+  }
 
   /**
    * @brief Read DEVICE_ID (common bank 0x21).
@@ -341,6 +363,15 @@ private:
 
   /** @brief Write GEN_CFG3 from cached lane/length/SDOUT/format. */
   bool applyDigitalInterface() noexcept;
+
+  /** @brief SW_RST, reset delay, then @ref restoreAfterReset (Table 7-18 steps 2-6). */
+  bool resetChip() noexcept;
+
+  /** @brief After any reset: reset the register caches, BANK_SEL = common, GEN_CFG3. */
+  bool restoreAfterReset() noexcept;
+
+  /** @brief Write @ref DefaultChannelConfig to all 16 channels and the cache. */
+  bool applyChannelDefaults() noexcept;
 
   /**
    * @brief CONVST high ≥ 1 µs, falling edge, then DRDY poll or fallback delay.

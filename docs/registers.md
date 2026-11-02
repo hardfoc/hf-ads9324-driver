@@ -83,16 +83,17 @@ explains the channel registers.
 
 ## Initialisation sequence
 
-`EnsureInitialized()` follows Table 7-18, then checks the ID:
+`EnsureInitialized()` follows Table 7-18, checks the ID, then writes the channel defaults:
 
 | Step | Frame or action | Why |
 | --- | --- | --- |
 | 1 | Wait 30 ms | Supplies and reference settle (t<sub>PU</sub>) |
-| 2 | `GEN_CFG1` = `0x0002` | Software reset |
+| 2 | `BANK_SEL` = `0x0001`, `GEN_CFG1` = `0x0002` | Software reset; the bank is selected first because GEN_CFG1 is in the common bank and the chip may have kept another bank across an MCU reset |
 | 3 | Wait 1 ms | Reset settle |
 | 4 | `BANK_SEL` = `0x0001` | Common bank |
 | 5 | `GEN_CFG3` = `0x0032` | 1 lane, 16-bit words, conversion data on SDOUT |
 | 6 | Read `DEVICE_ID`, expect `0x0004` | Proves SDI, SDOUT, SCLK and CS work |
+| 7 | `PGA_CONFIG_AINx_y` and `PGA_BW_SEL` of both channel banks | The `CONFIG_ADS9324_*` range, input type and bandwidth defaults ([Configuration](configuration.md)) |
 
 After reset the chip outputs conversion data on eight lanes (D0 to D7), which a plain SPI controller cannot read;
 step 5 is what makes SDOUT carry it.

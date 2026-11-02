@@ -28,40 +28,42 @@
 <text x="231" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">IsInitialized()</text>
 <rect x="354.3" y="323.4" width="151.6" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
 <text x="362.3" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">SoftwareReset()</text>
-<rect x="513.9" y="323.4" width="143.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="521.9" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadDeviceId()</text>
-<rect x="665.1" y="323.4" width="180.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="673.1" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureChannel()</text>
-<rect x="853.8" y="323.4" width="212" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="861.8" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureAllChannels()</text>
-<rect x="48" y="357.4" width="182.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="56" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetChannelConfig()</text>
-<rect x="238.2" y="357.4" width="177.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="246.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelOffset()</text>
-<rect x="423.5" y="357.4" width="162.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="431.5" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelGain()</text>
-<rect x="594.2" y="357.4" width="153.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="602.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDataFormat()</text>
-<rect x="755.4" y="357.4" width="154.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="763.4" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDataFormat()</text>
-<rect x="918.2" y="357.4" width="184.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="926.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDigitalInterface()</text>
-<rect x="48" y="391.4" width="222.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="56" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelCountMode()</text>
-<rect x="278.2" y="391.4" width="156.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="286.2" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetPowerDown()</text>
-<rect x="442.9" y="391.4" width="131.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="450.9" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetAlarmPin()</text>
-<rect x="582.7" y="391.4" width="267.5" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="590.7" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">ProgramWindowComparator()</text>
-<rect x="858.3" y="391.4" width="149.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="866.3" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadSnapshot()</text>
-<rect x="48" y="425.4" width="139.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="56" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadChannel()</text>
-<rect x="195.3" y="425.4" width="165.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="203.3" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">CountToVoltage()</text>
-<rect x="368.7" y="425.4" width="156" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="376.7" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDiagnostics()</text>
+<rect x="513.9" y="323.4" width="213.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="521.9" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">DefaultChannelConfig()</text>
+<rect x="735.3" y="323.4" width="143.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="743.3" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadDeviceId()</text>
+<rect x="886.6" y="323.4" width="180.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="894.6" y="341.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureChannel()</text>
+<rect x="48" y="357.4" width="212" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">ConfigureAllChannels()</text>
+<rect x="268" y="357.4" width="182.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="276" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetChannelConfig()</text>
+<rect x="458.2" y="357.4" width="177.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="466.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelOffset()</text>
+<rect x="643.6" y="357.4" width="162.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="651.6" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelGain()</text>
+<rect x="814.3" y="357.4" width="153.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="822.3" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDataFormat()</text>
+<rect x="975.4" y="357.4" width="154.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="983.4" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDataFormat()</text>
+<rect x="48" y="391.4" width="184.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetDigitalInterface()</text>
+<rect x="240.2" y="391.4" width="222.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="248.2" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelCountMode()</text>
+<rect x="470.5" y="391.4" width="156.7" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="478.5" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetPowerDown()</text>
+<rect x="635.1" y="391.4" width="131.8" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="643.1" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">SetAlarmPin()</text>
+<rect x="775" y="391.4" width="267.5" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="783" y="409.5" font-size="16" font-weight="700" fill="#C7CBFF">ProgramWindowComparator()</text>
+<rect x="48" y="425.4" width="149.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="56" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadSnapshot()</text>
+<rect x="205.4" y="425.4" width="139.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="213.4" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">ReadChannel()</text>
+<rect x="352.8" y="425.4" width="165.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="360.8" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">CountToVoltage()</text>
+<rect x="526.1" y="425.4" width="156" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="534.1" y="443.5" font-size="16" font-weight="700" fill="#C7CBFF">GetDiagnostics()</text>
 <text x="48" y="307.4" font-size="17" font-weight="700" fill="#C7CBFF">HARDWARE-AGNOSTIC CORE</text>
 <text x="326.2" y="307.4" font-size="16" fill="#C7CBFF">ADS9324&lt;Spi, Host&gt;, inc/ads9324.hpp</text>
 <text x="56" y="544.4" font-size="20" font-weight="700" fill="#C7CBFF">Transport contracts</text>

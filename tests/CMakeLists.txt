@@ -16,6 +16,15 @@ target_compile_options(hf_ads9324_host_tests PRIVATE -Wall -Wextra)
 
 add_test(NAME hf_ads9324_protocol COMMAND hf_ads9324_host_tests)
 
+# The CONFIG_ADS9324_* defaults must reach the chip: a second binary built with non-default values.
+add_executable(hf_ads9324_config_tests host/test_ads9324_config_defaults.cpp)
+target_link_libraries(hf_ads9324_config_tests PRIVATE hf::ads9324)
+target_compile_features(hf_ads9324_config_tests PRIVATE cxx_std_20)
+target_compile_options(hf_ads9324_config_tests PRIVATE -Wall -Wextra)
+target_compile_definitions(hf_ads9324_config_tests PRIVATE
+  CONFIG_ADS9324_RANGE_10V CONFIG_ADS9324_SINGLE_ENDED CONFIG_ADS9324_PGA_WIDE)
+add_test(NAME hf_ads9324_config_defaults COMMAND hf_ads9324_config_tests)
+
 # The code shown on the documentation site (docs/ includes these files with pymdownx.snippets), built so a
 # page cannot show code that does not compile against the current headers. Compiled, never linked or run.
 add_library(hf_ads9324_doc_snippets OBJECT

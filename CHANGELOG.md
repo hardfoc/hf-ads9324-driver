@@ -13,6 +13,12 @@ code that used the affected API.
 
 ### Fixed
 
+- The `CONFIG_ADS9324_RANGE_*`, `CONFIG_ADS9324_SINGLE_ENDED` and `CONFIG_ADS9324_PGA_WIDE` defaults only seeded the
+  driver's channel cache; the chip kept its reset state (±5 V differential, low bandwidth), so voltages were scaled
+  with the wrong range. `EnsureInitialized()` and `SoftwareReset()` now write them to all 16 channels
+  (PGA_CONFIG and PGA_BW_SEL of both banks). `SoftwareReset()` also resets the cached channel-count mode and PGA
+  configuration to match the chip. New `DefaultChannelConfig()` and `CONFIG_ADS9324_RANGE_6V25`.
+
 - `ReadSnapshot()` in a reduced channel-count mode (`SetChannelCountMode()` with `Eight`, `Four` or `Two`) stored
   the *n*th word of the burst as channel *n*. The chip sends a fixed set from both ends of the device (SBASB22
   Table 7-12, e.g. AIN1 to AIN4 and AIN13 to AIN16), so `count[4]` held AIN13 and was converted with channel 4's

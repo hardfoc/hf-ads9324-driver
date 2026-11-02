@@ -25,7 +25,7 @@ remaining problem is in CONVST, DRDY or the channel settings.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Voltage off by a fixed factor (2, 2.5, 4 ...) | The driver's range for that channel is not the one the chip uses | Configure the channel with `ConfigureChannel()`; with a changed `CONFIG_ADS9324_RANGE_*` default, call `ConfigureAllChannels()` |
+| Voltage off by a fixed factor (2, 2.5, 4 ...) | The range you configured is not the one your signal needs, or the chip was reset (RESET pin, power) without `EnsureInitialized()` | Configure the channel with `ConfigureChannel()`; call `EnsureInitialized(true)` after a reset the driver did not do |
 | Large offset on a single-ended input | AIN*n*M not at ground, or input type `Differential` with AIN*n*M floating | Connect AIN*n*M to ground and use `SingleEnded` |
 | Offset changes with the source | Source resistance on AIN*n*P not matched on AIN*n*M (1 MΩ input) | Add an equal resistor on AIN*n*M, then trim with `SetChannelOffset()` |
 | A disconnected sensor reads a random value | Input type `SingleEnded` without a pull-down | Use `SingleEndedOpenWireSafe` and a pull-down ([PGA and calibration](pga-and-calibration.md)) |

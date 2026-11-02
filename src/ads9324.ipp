@@ -23,14 +23,42 @@ namespace ads9324 {
 template <typename SpiType, typename HostType>
 ADS9324<SpiType, HostType>::ADS9324(SpiType& spi, HostType& host) noexcept
     : spi_(spi), host_(host) {
-  const ChannelConfig def{
-      ADS9324_CFG::DEFAULT_INPUT_TYPE,
-      ADS9324_CFG::DEFAULT_RANGE,
-      ADS9324_CFG::DEFAULT_BANDWIDTH,
-      false};
+  // Until EnsureInitialized() runs, the cache describes the chip's reset state.
   for (uint8_t i = 0; i < kNumChannels; ++i) {
-    ch_cfg_[i] = def;
+    ch_cfg_[i] = ChannelConfig{};
   }
+}
+
+/**
+ * Write the compile-time PGA defaults to every channel: per bank, the four
+ * PGA_CONFIG pair registers and PGA_BW_SEL (Tables 8-23 to 8-27), written
+ * whole since every field is known (no read-modify-write).
+ */
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::applyChannelDefaults() noexcept {
+  const ChannelConfig def = DefaultChannelConfig();
+  const uint16_t nibble = reg::EncodePgaNibble(def);
+  const auto pair = static_cast<uint16_t>((nibble << 8) | nibble);
+  uint16_t bw = 0;
+  for (uint8_t local = 0; local < 8; ++local) {
+    bw =
+        static_cast<uint16_t>(bw | ((static_cast<uint16_t>(def.bandwidth) & 0x3u) << (local * 2u)));
+  }
+  for (const RegisterBank bank : {RegisterBank::Ain1_8, RegisterBank::Ain9_16}) {
+    for (uint8_t local = 0; local < 8; local = static_cast<uint8_t>(local + 2u)) {
+      if (!writeRegister(bank, reg::PgaConfigAddr(local), pair)) {
+        return false;
+      }
+    }
+    if (!writeRegister(bank, reg::PGA_BW_SEL, bw)) {
+      return false;
+    }
+    const uint8_t first = (bank == RegisterBank::Ain1_8) ? 0u : 8u;
+    for (uint8_t ch = first; ch < first + 8u; ++ch) {
+      ch_cfg_[ch] = def;
+    }
+  }
+  return true;
 }
 
 /** Pack @p tx24 into three bytes, full-duplex, reassemble MISO MSB-first. */
@@ -109,16 +137,37 @@ bool ADS9324<SpiType, HostType>::applyDigitalInterface() noexcept {
   return writeRegister(RegisterBank::Common, reg::GEN_CFG3, cfg3);
 }
 
+/**
+ * Table 7-18 steps 2-6: SW_RST, wait, BANK_SEL = common, GEN_CFG3. Every
+ * register is back at its reset value afterwards (§7.4.1), so the caches that
+ * mirror chip registers are reset too.
+ */
 template <typename SpiType, typename HostType>
-bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
+bool ADS9324<SpiType, HostType>::resetChip() noexcept {
   if (!writeRegister(RegisterBank::Common, reg::GEN_CFG1, reg::GEN_CFG1_SW_RST)) {
     return false;
   }
   host_.DelayMs(ADS9324_CFG::RESET_DELAY_MS);
-  // Reset returns BANK_SEL to the common bank (reset value 0x0001, §8.1.2).
-  current_bank_ = RegisterBank::Common;
-  bank_known_ = true;
+  return restoreAfterReset();
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::restoreAfterReset() noexcept {
+  bank_known_ = false;
+  ch_count_mode_ = ChannelCountMode::All16;
+  ch_sel_ = 0;
+  for (uint8_t i = 0; i < kNumChannels; ++i) {
+    ch_cfg_[i] = ChannelConfig{};
+  }
+  if (!selectBank(RegisterBank::Common)) {
+    return false;
+  }
   return applyDigitalInterface();
+}
+
+template <typename SpiType, typename HostType>
+bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
+  return resetChip() && applyChannelDefaults();
 }
 
 template <typename SpiType, typename HostType>
@@ -126,20 +175,11 @@ bool ADS9324<SpiType, HostType>::EnsureInitialized(bool force) noexcept {
   if (initialized_ && !force) {
     return true;
   }
+  initialized_ = false;
 
   host_.DelayMs(ADS9324_CFG::POWER_ON_DELAY_MS);
 
-  if (!SoftwareReset()) {
-    ++errors_;
-    return false;
-  }
-
-  if (!writeRegister(RegisterBank::Common, reg::BANK_SEL, reg::BANK_COMMON)) {
-    ++errors_;
-    return false;
-  }
-
-  if (!applyDigitalInterface()) {
+  if (!resetChip()) {
     ++errors_;
     return false;
   }
@@ -150,6 +190,12 @@ bool ADS9324<SpiType, HostType>::EnsureInitialized(bool force) noexcept {
       ++errors_;
       return false;
     }
+  }
+
+  // The CONFIG_ADS9324_* range / input type / bandwidth defaults go to the chip.
+  if (!applyChannelDefaults()) {
+    ++errors_;
+    return false;
   }
 
   initialized_ = true;

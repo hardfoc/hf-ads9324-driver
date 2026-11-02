@@ -49,8 +49,9 @@ The port is the only platform code: one SPI transfer, the CONVST and DRDY pins, 
 What each step does:
 
 1. `EnsureInitialized()` waits 30 ms for the supplies and reference, resets the chip, writes
-   GEN_CFG3 = `0x0032` (1 lane, 16-bit words, data on SDOUT) and checks DEVICE_ID = `0x0004`. Nothing else
-   works until it returns `true`.
+   GEN_CFG3 = `0x0032` (1 lane, 16-bit words, data on SDOUT), checks DEVICE_ID = `0x0004` and writes the
+   compile-time PGA defaults (±5 V differential unless [configured](configuration.md)) to every channel. Nothing
+   else works until it returns `true`.
 2. `ConfigureAllChannels()` writes each channel's PGA nibble and filter bit. The ranges are bipolar; the driver
    remembers them to convert counts to volts.
 3. `ReadSnapshot()` pulses CONVST, waits for DRDY, then clocks 32 bytes out of SDOUT in one CS-low window.

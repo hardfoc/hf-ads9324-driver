@@ -47,10 +47,10 @@ and fails when DEVICE_ID is not `0x0004`. Every read and every snapshot needs it
 
 Each `ConfigureChannel()` call is a read-modify-write of two registers (about eight SPI frames). The driver keeps
 the last configuration per channel; `GetChannelConfig(ch)` returns it, and the voltage conversion uses its range.
-Until you configure a channel, the driver assumes the compile-time default range, which is ±5 V, the chip's reset
-value. `EnsureInitialized()` does not write the defaults to the chip: if you change them with
-`CONFIG_ADS9324_RANGE_*` ([Configuration](configuration.md)), call `ConfigureAllChannels()` so the chip and the
-driver agree. [PGA and calibration](pga-and-calibration.md) explains the encodings.
+`EnsureInitialized()` and `SoftwareReset()` write the compile-time defaults (`DefaultChannelConfig()`: ±5 V
+differential, low bandwidth unless changed with `CONFIG_ADS9324_*`, see [Configuration](configuration.md)) to all
+16 channels, so the chip and the driver agree from the start. [PGA and calibration](pga-and-calibration.md)
+explains the encodings.
 
 ## Calibrate offset and gain
 

@@ -13,7 +13,8 @@ using Adc = ads9324::ADS9324<MySpi, MyHost>;
 
 bool init_task(Adc& adc) {
   // --8<-- [start:init]
-  if (!adc.EnsureInitialized()) {        // 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID
+  if (!adc.EnsureInitialized()) { // 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID, PGA
+                                  // defaults
     const uint16_t id = adc.ReadDeviceId();   // 0x0004 on a healthy ADS9324, 0 when SDOUT is dead
     std::printf("ADS9324 init failed, DEVICE_ID = 0x%04X\n", id);
     return false;
