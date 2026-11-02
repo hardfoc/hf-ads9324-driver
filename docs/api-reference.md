@@ -1,24 +1,18 @@
 # API reference
 
-Class: `ads9324::ADS9324<SpiType, HostType>`
+Every class, member and type of the driver, generated from the headers by Doxygen.
 
-| Method | Purpose |
-|--------|---------|
-| `EnsureInitialized(force)` | Rail delay, SW reset, 1-lane SDOUT, DEVICE_ID |
-| `SoftwareReset()` | GEN_CFG1.SW_RST |
-| `ReadDeviceId()` | Common 0x21, expect `0x0004` |
-| `ConfigureChannel(ch, cfg)` | PGA nibble + bandwidth for channel 0–15 |
-| `ConfigureAllChannels(cfg)` | All 16 channels |
-| `SetChannelOffset(ch, ofs10)` | OFS_AINx, 10-bit two's complement |
-| `SetChannelGain(ch, gan14)` | GAN_AINx, 14-bit |
-| `SetDataFormat` | Two's complement or offset binary |
-| `SetDigitalInterface` | Lane count / 16 vs 24 bit / SDOUT vs D7 |
-| `SetChannelCountMode` | 16/8/4/2 channel readout (Table 7-12) |
-| `SetPowerDown` | PDN_CTL.DEVICE_PDN |
-| `SetAlarmPin` | DRDY vs DWC vs CAL_DONE |
-| `ProgramWindowComparator` | DWC_TH + DWC_EN |
-| `ReadSnapshot` | CONVST + burst |
-| `ReadChannel` | Snapshot then pick one channel (16-ch mode) |
-| `CountToVoltage` | Uses that channel's programmed FS |
+[Open the API reference](api/index.html){ .md-button .md-button--primary }
 
-Types live in `ads9324_types.hpp`. Frame packing lives in `ads9324_registers.hpp`.
+## Start here
+
+| Page | What it documents |
+| --- | --- |
+| [`ads9324::ADS9324`](api/classads9324_1_1_a_d_s9324.html) | The driver |
+| [`ads9324::SpiInterface`](api/classads9324_1_1_spi_interface.html) | The SPI contract your port implements |
+| [`ads9324::HostInterface`](api/classads9324_1_1_host_interface.html) | The CONVST, DRDY and delay contract |
+| [`ads9324::ChannelConfig`](api/structads9324_1_1_channel_config.html) | One channel's PGA settings |
+| [`ads9324::Snapshot`](api/structads9324_1_1_snapshot.html) | The result of one conversion |
+| [File list](api/files.html) | Every header |
+
+The [API guide](api-guide.md) shows the same API by task, with code that compiles.

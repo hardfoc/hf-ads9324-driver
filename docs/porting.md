@@ -1,41 +1,78 @@
-# Platform integration
+# Porting
 
-The driver has no OS or MCU headers. Bind two CRTP types, then construct
-`ads9324::ADS9324<Spi, Host>`.
+Run the driver on a new MCU by writing two small classes: one for SPI, one for CONVST, DRDY and delays.
 
-## `SpiInterface<Derived>`
+The driver never calls your SDK directly. It calls six methods on classes you derive from
+`ads9324::SpiInterface<Self>` and `ads9324::HostInterface<Self>` (in
+[`inc/ads9324_spi_interface.hpp`](../inc/ads9324_spi_interface.hpp)). The base classes use CRTP: the calls are
+resolved at compile time, so there are no virtual functions, no vtable and nothing to allocate.
 
-Implement:
+<!-- figure: driver-layers -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/driver-layers.dark.svg">
+  <img src="diagrams/driver-layers.svg"
+    alt="Layer diagram: the application calls the hardware-agnostic ADS9324 driver and its methods, which use
+    the SpiInterface and HostInterface contracts, which call the platform port you write, which drives
+    the SPI bus, CONVST and DRDY of the ADS9324.">
+</picture>
+<!-- /figure -->
 
-```cpp
-void transfer(const uint8_t* tx, uint8_t* rx, size_t len);
+## What you implement
+
+| Method | Class | Contract |
+| --- | --- | --- |
+| `transfer(tx, rx, len)` | `SpiInterface` | One full-duplex transfer of `len` bytes with CS low for all of them. `tx == nullptr`: send zeros. `rx == nullptr`: discard the received bytes |
+| `ConvstWrite(high)` | `HostInterface` | Drive CONVST high (`true`) or low (`false`) |
+| `DrdyRead()` | `HostInterface` | Return `true` when DRDY/ALARM is high (conversion ready) |
+| `HasDrdy() const` | `HostInterface` | `true` if DRDY is wired; `false` makes the driver wait `CONV_FALLBACK_US` instead |
+| `DelayUs(us)` | `HostInterface` | Block for at least `us` microseconds (1 µs steps during the DRDY poll) |
+| `DelayMs(ms)` | `HostInterface` | Block for at least `ms` milliseconds (30 ms power-up, 1 ms after reset) |
+
+## The port
+
+```cpp title="my_port.hpp"
+--8<-- "tests/docs/my_port.hpp:port"
 ```
 
-Contract:
+One class may implement both contracts; pass the same object twice: `ADS9324<Bus, Bus> adc(bus, bus)`.
 
-- Assert CS for the **entire** `len`, then deassert. Config frames are 3 bytes.
-  Conversion bursts are `N * 2` bytes (16-bit) or `N * 3` (24-bit).
-- `tx == nullptr` means clock zeros (conversion readout).
-- `rx == nullptr` means discard MISO (config writes).
-- SPI mode 0, MSB first. 8 MHz is a conservative start vs the 1 MSPS analog path.
+## Rules for the transfer
 
-## `HostInterface<Derived>`
+- **SPI mode 0**, MSB first, up to 60 MHz. Start at 1 to 8 MHz on a new board.
+- **One CS window per call.** CS goes low before the first byte and high after the last. Register frames are
+  3 bytes; a conversion burst is 32 bytes (16 channels, 16-bit words) or 48 bytes (24-bit words). Never split one
+  call into several CS windows: the chip decodes a register write on the CS rising edge.
+- **Handle `nullptr`.** The driver passes real buffers today, but the contract allows either pointer to be null.
+- **Own the bus.** Do not share this CS with another device, and do not let another task use the bus in the middle
+  of a register read (two frames).
 
-| Method | Role |
-|--------|------|
-| `ConvstWrite(bool high)` | CONVST pin. High then low; conversion on falling edge |
-| `HasDrdy() const` | `false` → timed wait (`ADS9324_CFG::CONV_FALLBACK_US`) |
-| `DrdyRead()` | Sample DRDY/ALARM (conversion-complete in default mux) |
-| `DelayUs` / `DelayMs` | POR (30 ms), reset settle, DRDY poll step |
+`transfer()` returns `void`, so the driver cannot learn about a bus error. Log or count errors in your port.
+
+## CONVST and DRDY
+
+The driver holds CONVST high for 1 µs and then drives it low; the falling edge samples every channel. The chip
+needs only 50 ns high and 50 ns low, so any GPIO is fast enough. DRDY is active high by default; if your board
+inverts it, invert it in `DrdyRead()`, not with `SetAlarmPin(..., true)`.
+
+Without DRDY (`HasDrdy()` returns `false`) the driver waits `CONV_FALLBACK_US` (10 µs) after the falling edge. The
+conversion takes 1.25 µs without oversampling, so the default leaves margin.
 
 ## Reference implementation
 
-ESP32-C6: `examples/esp32/main/esp32_ads9324_bus.hpp`.
+The ESP32 examples use [`esp32_ads9324_bus.hpp`](../examples/esp32/main/esp32_ads9324_bus.hpp): one class that
+implements both contracts with the ESP-IDF `spi_master` driver (hardware CS, one transaction per call), GPIO for
+CONVST and DRDY, `esp_rom_delay_us()` and FreeRTOS delays. Start from it for any ESP-IDF target.
 
-A consuming platform (handler, HAL, Linux spidev, …) implements the same two
-CRTP contracts. This driver does not include or name those layers.
+## Check your port
 
-## Channel numbering
+1. Build it: the port on this page is compiled by the host CI from [`tests/docs/`](../tests/docs/my_port.hpp),
+   with the driver instantiated over it.
+2. Call `EnsureInitialized()`. If it fails, print `ReadDeviceId()`: `0x0004` proves SDI, SCLK, CS and SDOUT end to
+   end.
+3. Short one input and read a snapshot: the count should be within a few tens of LSB of zero.
+4. Watch `GetDiagnostics().errors`: it should stay at zero on a healthy link.
 
-API channel 0 = hardware AIN1, channel 15 = AIN16.
-Register names in SBASB22 stay 1-based.
+## Threads
+
+The driver is not thread-safe. Give each ADS9324 one owner task, or guard every call on a driver object (and its
+port) with one mutex. Several chips on separate buses can run in parallel.
