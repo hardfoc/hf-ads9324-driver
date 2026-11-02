@@ -12,9 +12,9 @@ each pull request.
 <!-- generated: examples -->
 | App | What it shows | Source | CI |
 | --- | --- | --- | --- |
-| `driver_integration_test` :material-star:{ title="featured" } | Integration test suite: DEVICE_ID, PGA, snapshots, calibration registers and power-down, with a pass / fail summary | [`driver_integration_test.cpp`](../examples/esp32/main/driver_integration_test.cpp) | yes |
-| `basic_snapshot` :material-star:{ title="featured" } | Initialise all channels and print a snapshot every 500 ms | [`basic_snapshot_example.cpp`](../examples/esp32/main/basic_snapshot_example.cpp) | no |
-| `pga_offset` :material-star:{ title="featured" } | Different ranges per channel, plus offset and gain registers | [`pga_offset_example.cpp`](../examples/esp32/main/pga_offset_example.cpp) | no |
+| `driver_integration_test` :material-star:{ title="featured" } | Integration test suite: DEVICE_ID, PGA, snapshots, oversampling, offset / gain registers, ADC_CAL and power-down, with a pass / fail summary | [`driver_integration_test.cpp`](../examples/esp32/main/driver_integration_test.cpp) | yes |
+| `basic_snapshot` :material-star:{ title="featured" } | Initialise all channels and print a snapshot every 500 ms | [`basic_snapshot_example.cpp`](../examples/esp32/main/basic_snapshot_example.cpp) | yes |
+| `pga_offset` :material-star:{ title="featured" } | Different ranges per channel, offset and gain correction, one snapshot for both | [`pga_offset_example.cpp`](../examples/esp32/main/pga_offset_example.cpp) | yes |
 
 Build and flash one (from `examples/esp32`, ESP-IDF environment loaded):
 

@@ -74,6 +74,10 @@ code that used the affected API.
   select the bank again. A port with a `void` `transfer()` still compiles and is treated as never failing; any
   other return type (for example `esp_err_t`) is a compile error. The ESP32 example port returns `false` on an
   ESP-IDF error.
+- ESP32 examples: CI now builds `basic_snapshot` and `pga_offset` as well (`ci_enabled: true`). Both check the
+  `bool` results of the configuration calls; `pga_offset` reads both channels from one snapshot and programs a
+  signed gain. `driver_integration_test` adds oversampling, system-correction and ADC_CAL tests and logs the
+  driver version.
 - Documentation moved to the HardFOC MkDocs platform: new page set (quickstart, hardware, architecture, API
   guide, porting, testing), code snippets compiled by the host build from `tests/docs/`, Doxygen under `/api/`,
   versioned with mike. The Jekyll site files and the vendored doxygen-awesome stylesheet are gone.

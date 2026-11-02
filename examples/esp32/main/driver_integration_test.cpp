@@ -4,7 +4,8 @@
  * @ingroup ads9324_examples_tests
  *
  * Requires ADS9324 silicon on the pins in esp32_ads9324_test_config.hpp.
- * DEVICE_ID, PGA programming, offset/gain, CONVST snapshot, and DWC are covered.
+ * DEVICE_ID, PGA programming, offset/gain, ADC_CAL, oversampling, CONVST snapshot, and DWC are
+ * covered.
  */
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -83,6 +84,26 @@ static bool test_offset_gain_program() noexcept {
   return ok;
 }
 
+static bool test_system_correction_bits() noexcept {
+  return g_adc->SetSystemCorrection(false, false) && g_adc->SetSystemCorrection(true, true);
+}
+
+static bool test_adc_calibration() noexcept {
+  // Single-shot ADC_CAL, about 125 ms (SBASB22 section 7.3.10, Table 7-7).
+  return g_adc->RunAdcCalibration(ads9324::AdcCalMode::OffsetAndGain) &&
+         g_adc->GetAdcCalMode() == ads9324::AdcCalMode::OffsetAndGain;
+}
+
+static bool test_oversampled_snapshot() noexcept {
+  if (!g_adc->SetOversampling(ads9324::OversamplingRatio::X16)) {
+    return false;
+  }
+  const auto avg = g_adc->ReadSnapshot();
+  ESP_LOGI(TAG, "OSR16 snapshot err=%u CH0=%d", static_cast<unsigned>(avg.error), avg.count[0]);
+  const bool back = g_adc->SetOversampling(ads9324::OversamplingRatio::None);
+  return avg.ok() && back;
+}
+
 static bool test_window_comparator() noexcept {
   return g_adc->ProgramWindowComparator(0, 64, -64, true) &&
          g_adc->ProgramWindowComparator(0, 127, -128, false);
@@ -105,6 +126,8 @@ static bool test_voltage_math() noexcept {
 extern "C" void app_main(void) {
   init_test_progress_indicator();
   print_test_section_status(TAG, "ADS9324");
+  ESP_LOGI(TAG, "ADS9324 driver %s",
+           ads9324::ADS9324<Esp32Ads9324Bus, Esp32Ads9324Bus>::GetDriverVersion());
 
   g_bus = CreateEsp32Ads9324Bus();
   if (!g_bus || !g_bus->initialize()) {
@@ -134,10 +157,13 @@ extern "C" void app_main(void) {
   RUN_TEST(test_read_channel_0);
   RUN_TEST(test_invalid_channel);
   RUN_TEST(test_voltage_math);
+  RUN_TEST(test_oversampled_snapshot);
 #endif
 #if ENABLE_CAL_TESTS
   print_test_section_header(TAG, "OFFSET_GAIN_DWC");
   RUN_TEST(test_offset_gain_program);
+  RUN_TEST(test_system_correction_bits);
+  RUN_TEST(test_adc_calibration);
   RUN_TEST(test_window_comparator);
 #endif
 #if ENABLE_POWER_DOWN_TESTS

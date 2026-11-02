@@ -24,7 +24,12 @@ extern "C" void app_main(void) {
   ads9324::ChannelConfig cfg;
   cfg.type = ads9324::InputType::Differential;
   cfg.range = ads9324::InputRange::PlusMinus5V;
-  adc.ConfigureAllChannels(cfg);
+  // false on a bus error: the port's transfer() returned false.
+  if (!adc.ConfigureAllChannels(cfg)) {
+    ESP_LOGE(TAG, "channel configuration failed");
+    return;
+  }
+  ESP_LOGI(TAG, "ADS9324 driver %s", decltype(adc)::GetDriverVersion());
 
   while (true) {
     auto snap = adc.ReadSnapshot();
