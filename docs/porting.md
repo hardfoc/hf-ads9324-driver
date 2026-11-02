@@ -21,7 +21,7 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 
 | Method | Class | Contract |
 | --- | --- | --- |
-| `transfer(tx, rx, len)` | `SpiInterface` | One full-duplex transfer of `len` bytes with CS low for all of them. `tx == nullptr`: send zeros. `rx == nullptr`: discard the received bytes |
+| `transfer(tx, rx, len)` | `SpiInterface` | One full-duplex transfer of `len` bytes with CS low for all of them. `tx == nullptr`: send zeros. `rx == nullptr`: discard the received bytes. Return `true` when the bytes went out, `false` on a bus error |
 | `ConvstWrite(high)` | `HostInterface` | Drive CONVST high (`true`) or low (`false`) |
 | `DrdyRead()` | `HostInterface` | Return `true` when DRDY/ALARM is high (conversion ready) |
 | `HasDrdy() const` | `HostInterface` | `true` if DRDY is wired; `false` makes the driver wait `CONV_FALLBACK_US` instead |
@@ -46,7 +46,14 @@ One class may implement both contracts; pass the same object twice: `ADS9324<Bus
 - **Own the bus.** Do not share this CS with another device, and do not let another task use the bus in the middle
   of a register read (two frames).
 
-`transfer()` returns `void`, so the driver cannot learn about a bus error. Log or count errors in your port.
+`transfer()` returns `bool`: `false` tells the driver the transfer failed. The call that sent the frame stops
+there: configuration calls return `false`, `ReadDeviceId()` returns 0 and the reads return `Error::SpiError`. The
+driver's cached settings change only after the frames that set them went out, and after a failed `BANK_SEL` frame
+the next access selects the bank again.
+
+Return the SDK's status as a `bool` (`== ESP_OK`, `== HAL_OK`): any other return type is rejected at compile time,
+so an `esp_err_t` (0 = success) cannot be read as `false`. A port written for the earlier contract, with a `void`
+`transfer()`, still compiles; the driver then treats every transfer as successful.
 
 ## CONVST and DRDY
 

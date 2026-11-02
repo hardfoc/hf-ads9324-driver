@@ -13,6 +13,13 @@ code that used the affected API.
 
 ### Changed
 
+- The SPI port's `transfer()` now returns `bool` (`true` = bytes clocked, `false` = bus error) and the driver
+  propagates it: configuration calls return `false`, `ReadDeviceId()` returns 0, `ReadSnapshot()` /
+  `ReadChannel()` return `Error::SpiError`. Cached settings (data format, lanes, channel-count mode, PGA) change
+  only after the frames that set them were transferred, and a failed `BANK_SEL` frame forces the next access to
+  select the bank again. A port with a `void` `transfer()` still compiles and is treated as never failing; any
+  other return type (for example `esp_err_t`) is a compile error. The ESP32 example port returns `false` on an
+  ESP-IDF error.
 - Documentation moved to the HardFOC MkDocs platform: new page set (quickstart, hardware, architecture, API
   guide, porting, testing), code snippets compiled by the host build from `tests/docs/`, Doxygen under `/api/`,
   versioned with mike. The Jekyll site files and the vendored doxygen-awesome stylesheet are gone.

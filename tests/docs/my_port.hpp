@@ -14,7 +14,8 @@
 #include <cstdint>
 
 // Platform hooks: your SDK's calls. Declared only, so the docs build checks the port compiles.
-void platform_spi_transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) noexcept;  // CS low .. CS high
+bool platform_spi_transfer(const uint8_t* tx, uint8_t* rx,
+                           std::size_t len) noexcept; // CS low .. CS high
 void platform_gpio_write(int gpio, bool level) noexcept;
 bool platform_gpio_read(int gpio) noexcept;
 void platform_delay_us(uint32_t us) noexcept;
@@ -24,8 +25,9 @@ void platform_delay_us(uint32_t us) noexcept;
 class MySpi : public ads9324::SpiInterface<MySpi> {
 public:
   // tx == nullptr: clock out zeros. rx == nullptr: discard what arrives on SDOUT.
-  void transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
-    platform_spi_transfer(tx, rx, len);
+  // Return false on a bus error: the driver then fails the call that sent the frame.
+  bool transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+    return platform_spi_transfer(tx, rx, len);
   }
 };
 

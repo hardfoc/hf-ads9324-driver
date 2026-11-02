@@ -33,13 +33,34 @@ public:
   std::vector<uint32_t> writes;
   int convst_pulses = 0;
   bool convst = false;
-  uint8_t conversion_bytes[32]{};
+  uint8_t conversion_bytes[48]{};
+  // Bus-error injection: transfer number `fail_from` (0-based) and every later one fail while
+  // `fail_count` is non-zero (-1 = until cleared). A failed transfer changes nothing.
+  long transfers = 0;
+  long fail_from = -1;
+  long fail_count = 0;
 
   MockBus() {
     mem[0][ads9324::reg::DEVICE_ID] = ads9324::kDeviceIdAds9324;
   }
 
-  void transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+  /// Fail the next @p count transfers (-1 = all of them until heal()).
+  void failNext(long count = -1) {
+    fail_from = transfers;
+    fail_count = count;
+  }
+  void heal() {
+    fail_count = 0;
+  }
+
+  bool transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+    const long index = transfers++;
+    if (fail_count != 0 && index >= fail_from) {
+      if (fail_count > 0) {
+        --fail_count;
+      }
+      return false;
+    }
     if (len == 3 && tx != nullptr) {
       const uint32_t word = (static_cast<uint32_t>(tx[0]) << 16) | (static_cast<uint32_t>(tx[1]) << 8) |
                             static_cast<uint32_t>(tx[2]);
@@ -76,7 +97,7 @@ public:
         rx[1] = static_cast<uint8_t>((reply >> 8) & 0xFF);
         rx[2] = static_cast<uint8_t>(reply & 0xFF);
       }
-      return;
+      return true;
     }
 
     // Conversion burst
@@ -87,6 +108,7 @@ public:
         std::memset(rx + n, 0, len - n);
       }
     }
+    return true;
   }
 
   void ConvstWrite(bool high) {
@@ -101,10 +123,120 @@ public:
   void DelayMs(uint32_t) {}
 };
 
+/// A port written for the earlier contract: transfer() returns void.
+class LegacyVoidBus : public ads9324::SpiInterface<LegacyVoidBus>,
+                      public ads9324::HostInterface<LegacyVoidBus> {
+public:
+  MockBus inner;
+  void transfer(const uint8_t* tx, uint8_t* rx, std::size_t len) {
+    (void)inner.transfer(tx, rx, len);
+  }
+  void ConvstWrite(bool high) {
+    inner.ConvstWrite(high);
+  }
+  bool DrdyRead() {
+    return true;
+  }
+  bool HasDrdy() const {
+    return false;
+  }
+  void DelayUs(uint32_t) {}
+  void DelayMs(uint32_t) {}
+};
+
+static_assert(ads9324::detail::kTransferReportsStatus<MockBus>, "MockBus reports status");
+static_assert(!ads9324::detail::kTransferReportsStatus<LegacyVoidBus>, "void port");
+
+using Adc = ads9324::ADS9324<MockBus, MockBus>;
+
+void test_bus_errors_propagate() {
+  using namespace ads9324;
+  {
+    MockBus bus;
+    Adc adc(bus, bus);
+    bus.failNext();
+    CHECK(!adc.EnsureInitialized());
+    CHECK(!adc.IsInitialized());
+    CHECK(adc.GetDiagnostics().errors == 1);
+    bus.heal();
+    CHECK(adc.EnsureInitialized());
+  }
+  {
+    // DEVICE_ID read: the dummy frame that carries the data fails.
+    MockBus bus;
+    Adc adc(bus, bus);
+    CHECK(adc.EnsureInitialized());
+    const long before = bus.transfers;
+    bus.fail_from = before + 2; // BANK_SEL, GEN_CFG1 read command, then the data frame
+    bus.fail_count = 1;
+    CHECK(adc.ReadDeviceId() == 0);
+    CHECK(adc.ReadDeviceId() == kDeviceIdAds9324);
+  }
+
+  MockBus bus;
+  Adc adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+
+  ChannelConfig cfg;
+  cfg.range = InputRange::PlusMinus10V;
+  bus.failNext();
+  CHECK(!adc.ConfigureChannel(2, cfg));
+  CHECK(adc.GetChannelConfig(2).range != InputRange::PlusMinus10V); // cache unchanged
+  CHECK(!adc.ConfigureAllChannels(cfg));
+  CHECK(!adc.SetChannelOffset(0, 4));
+  CHECK(!adc.SetChannelGain(0, 4));
+  CHECK(!adc.SetPowerDown(true));
+  CHECK(!adc.SetAlarmPin(AlarmPinMode::DwcAlert));
+  CHECK(!adc.ProgramWindowComparator(0, 10, -10));
+  CHECK(!adc.SoftwareReset());
+
+  CHECK(!adc.SetDataFormat(DataFormat::OffsetBinary));
+  CHECK(adc.GetDataFormat() == DataFormat::TwosComplement); // cache unchanged
+  CHECK(!adc.SetDigitalInterface(DoutLaneMode::Lane1, DoutLength::Bits24, true));
+  CHECK(!adc.SetChannelCountMode(ChannelCountMode::Two, 0));
+
+  const Snapshot failed = adc.ReadSnapshot();
+  CHECK(failed.error == Error::SpiError);
+  CHECK(failed.valid_mask == 0);
+  CHECK(adc.ReadChannel(0).error == Error::SpiError);
+
+  // Fail only the conversion burst (the first transfer of a snapshot).
+  bus.heal();
+  bus.failNext(1);
+  CHECK(adc.ReadSnapshot().error == Error::SpiError);
+  const Snapshot good = adc.ReadSnapshot();
+  CHECK(good.ok());
+  CHECK(good.valid_mask == 0xFFFF); // the failed SetChannelCountMode() did not change the cache
+
+  // A failed BANK_SEL leaves the chip's bank unknown: the next access selects it again.
+  CHECK(adc.SetChannelOffset(0, 1)); // bank AIN1-8 now selected
+  bus.failNext(1);
+  CHECK(!adc.SetChannelOffset(8, 1)); // its BANK_SEL (AIN9-16) frame fails
+  const std::size_t writes_before = bus.writes.size();
+  CHECK(adc.SetChannelOffset(1, 2));
+  CHECK(bus.writes.size() == writes_before + 2); // BANK_SEL again, then OFS_AIN2
+  CHECK((bus.writes[writes_before] >> 16) == reg::BANK_SEL);
+  CHECK(bus.mem[1][reg::OFS_AIN1 + 1] == 2);
+}
+
+void test_legacy_void_port() {
+  using namespace ads9324;
+  LegacyVoidBus bus;
+  ADS9324<LegacyVoidBus, LegacyVoidBus> adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+  CHECK(adc.ReadDeviceId() == kDeviceIdAds9324);
+  CHECK(adc.SetChannelOffset(3, 8));
+  CHECK(bus.inner.mem[1][reg::OFS_AIN1 + 3] == 8);
+  CHECK(adc.ReadSnapshot().ok());
+}
+
 }  // namespace
 
 int main() {
   using namespace ads9324;
+
+  test_bus_errors_propagate();
+  test_legacy_void_port();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

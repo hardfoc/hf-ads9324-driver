@@ -10,9 +10,11 @@
  * obvious from the signatures: banked PGA nibble merge, two-frame register
  * read, CONVST/DRDY handshake, and SDOUT burst unpack.
  *
- * @note SPI write helpers currently treat the CRTP `transfer` as infallible
- *       (always return true). Surface transport errors when the platform
- *       adapter reports them.
+ * Bus errors: every frame goes through detail::Transfer(); when the port
+ * reports a failure the operation stops there, `bool` calls return false and
+ * the reads return Error::SpiError. Cached state (bank, data format, lanes,
+ * channel-count mode, PGA configuration) is only updated after the frames
+ * that change it on the chip were transferred.
  */
 #pragma once
 
@@ -33,41 +35,50 @@ ADS9324<SpiType, HostType>::ADS9324(SpiType& spi, HostType& host) noexcept
 
 /** Pack @p tx24 into three bytes, full-duplex, reassemble MISO MSB-first. */
 template <typename SpiType, typename HostType>
-uint32_t ADS9324<SpiType, HostType>::spiTransfer24(uint32_t tx24) noexcept {
-  uint8_t tx[3] = {
+bool ADS9324<SpiType, HostType>::spiTransfer24(uint32_t tx24, uint32_t* rx24) noexcept {
+  const uint8_t tx[3] = {
       static_cast<uint8_t>((tx24 >> 16) & 0xFFu),
       static_cast<uint8_t>((tx24 >> 8) & 0xFFu),
       static_cast<uint8_t>(tx24 & 0xFFu),
   };
   uint8_t rx[3] = {0, 0, 0};
-  spi_.transfer(tx, rx, 3);
-  return (static_cast<uint32_t>(rx[0]) << 16) | (static_cast<uint32_t>(rx[1]) << 8) |
-         static_cast<uint32_t>(rx[2]);
+  const bool ok = detail::Transfer(spi_, tx, rx, reg::kSpiFrameBytes);
+  if (rx24 != nullptr) {
+    *rx24 = ok ? ((static_cast<uint32_t>(rx[0]) << 16) | (static_cast<uint32_t>(rx[1]) << 8) |
+                  static_cast<uint32_t>(rx[2]))
+               : 0u;
+  }
+  return ok;
 }
 
-/** BANK_SEL is in the common bank; writing it switches decode for later addresses. */
+/**
+ * BANK_SEL is reachable from every bank; writing it switches decode for later
+ * addresses (§7.5.1). If the frame fails the chip's bank is unknown, so the
+ * cache is invalidated and the next access selects the bank again.
+ */
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::selectBank(RegisterBank bank) noexcept {
-  const uint32_t rx =
-      spiTransfer24(reg::PackWrite(reg::BANK_SEL, reg::BankSelectValue(bank)));
-  (void)rx;
+  if (!spiTransfer24(reg::PackWrite(reg::BANK_SEL, reg::BankSelectValue(bank)))) {
+    bank_known_ = false;
+    return false;
+  }
   current_bank_ = bank;
+  bank_known_ = true;
   return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::writeRegister(RegisterBank bank, uint8_t addr,
                                                uint16_t data) noexcept {
-  if (addr != reg::BANK_SEL && current_bank_ != bank) {
+  if (addr == reg::BANK_SEL) {
+    return selectBank(bank);
+  }
+  if (!bank_known_ || current_bank_ != bank) {
     if (!selectBank(bank)) {
       return false;
     }
   }
-  spiTransfer24(reg::PackWrite(addr, data));
-  if (addr == reg::BANK_SEL) {
-    current_bank_ = bank;
-  }
-  return true;
+  return spiTransfer24(reg::PackWrite(addr, data));
 }
 
 // Two-frame read: write GEN_CFG1 with REG_RD_ADD|REG_RD_EN, then clock a dummy
@@ -75,12 +86,18 @@ bool ADS9324<SpiType, HostType>::writeRegister(RegisterBank bank, uint8_t addr,
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::readRegister(RegisterBank bank, uint8_t addr,
                                               uint16_t& data) noexcept {
+  data = 0;
   if (!selectBank(bank)) {
     return false;
   }
   // Frame: write GEN_CFG1 with REG_RD_ADD and REG_RD_EN (Table 7-17).
-  spiTransfer24(reg::PackWrite(reg::GEN_CFG1, reg::ReadCommand(addr)));
-  const uint32_t rx = spiTransfer24(0);
+  if (!spiTransfer24(reg::PackWrite(reg::GEN_CFG1, reg::ReadCommand(addr)))) {
+    return false;
+  }
+  uint32_t rx = 0;
+  if (!spiTransfer24(0, &rx)) {
+    return false;
+  }
   data = reg::UnpackRegData(rx);
   return true;
 }
@@ -98,7 +115,9 @@ bool ADS9324<SpiType, HostType>::SoftwareReset() noexcept {
     return false;
   }
   host_.DelayMs(ADS9324_CFG::RESET_DELAY_MS);
+  // Reset returns BANK_SEL to the common bank (reset value 0x0001, §8.1.2).
   current_bank_ = RegisterBank::Common;
+  bank_known_ = true;
   return applyDigitalInterface();
 }
 
@@ -230,26 +249,37 @@ bool ADS9324<SpiType, HostType>::SetChannelGain(uint8_t channel, uint16_t gan_14
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetDataFormat(DataFormat format) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::GEN_CFG3,
+                     reg::GenCfg3Value(lanes_, length_, data_on_sdout_, format))) {
+    return false;
+  }
   format_ = format;
-  return applyDigitalInterface();
+  return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetDigitalInterface(DoutLaneMode lanes, DoutLength length,
                                                      bool data_on_sdout) noexcept {
+  if (!writeRegister(RegisterBank::Common, reg::GEN_CFG3,
+                     reg::GenCfg3Value(lanes, length, data_on_sdout, format_))) {
+    return false;
+  }
   lanes_ = lanes;
   length_ = length;
   data_on_sdout_ = data_on_sdout;
-  return applyDigitalInterface();
+  return true;
 }
 
 template <typename SpiType, typename HostType>
 bool ADS9324<SpiType, HostType>::SetChannelCountMode(ChannelCountMode mode,
                                                      uint8_t ch_sel) noexcept {
+  const auto sel = static_cast<uint8_t>(ch_sel & 0x07u);
+  if (!writeRegister(RegisterBank::Common, reg::ANA_CFG2, reg::AnaCfg2Value(mode, sel))) {
+    return false;
+  }
   ch_count_mode_ = mode;
-  ch_sel_ = static_cast<uint8_t>(ch_sel & 0x07u);
-  return writeRegister(RegisterBank::Common, reg::ANA_CFG2,
-                       reg::AnaCfg2Value(mode, ch_sel_));
+  ch_sel_ = sel;
+  return true;
 }
 
 template <typename SpiType, typename HostType>
@@ -350,8 +380,12 @@ Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
   const uint8_t n = activeChannelCount();
   const std::size_t bytes_per = (length_ == DoutLength::Bits24) ? 3u : 2u;
   uint8_t rx[kNumChannels * 3]{};
-  uint8_t tx[kNumChannels * 3]{};
-  spi_.transfer(tx, rx, static_cast<std::size_t>(n) * bytes_per);
+  const uint8_t tx[kNumChannels * 3]{};
+  if (!detail::Transfer(spi_, tx, rx, static_cast<std::size_t>(n) * bytes_per)) {
+    snap.error = Error::SpiError;
+    ++errors_;
+    return snap;
+  }
 
   for (uint8_t i = 0; i < n && i < kNumChannels; ++i) {
     uint16_t raw = 0;

@@ -19,7 +19,7 @@
  * @code{.cpp}
  * class MySpi : public ads9324::SpiInterface<MySpi> {
  * public:
- *   void transfer(const uint8_t* tx, uint8_t* rx, size_t len) { ... }
+ *   bool transfer(const uint8_t* tx, uint8_t* rx, size_t len) { ... }  // false = bus error
  * };
  * class MyHost : public ads9324::HostInterface<MyHost> {
  * public:
@@ -71,6 +71,11 @@ namespace ads9324 {
  *
  * Not thread-safe. The host serializes access if multiple tasks share one instance.
  *
+ * Bus errors: when the port's `transfer()` returns false, the call that sent
+ * the frame stops there; `bool` functions return false, @ref ReadDeviceId
+ * returns 0 and the reads return @ref Error::SpiError. Cached state is only
+ * updated after the frames that change it were transferred.
+ *
  * @tparam SpiType  CRTP type implementing @ref SpiInterface (3-byte config
  *                  frames + conversion burst).
  * @tparam HostType CRTP type implementing @ref HostInterface (CONVST / DRDY /
@@ -120,7 +125,7 @@ public:
 
   /**
    * @brief Read DEVICE_ID (common bank 0x21).
-   * @return 16-bit ID, or 0 if the read failed. ADS9324 reset value is 0x0004.
+   * @return 16-bit ID, or 0 if a frame of the read failed. ADS9324 reset value is 0x0004.
    */
   uint16_t ReadDeviceId() noexcept;
 
@@ -178,6 +183,7 @@ public:
    * @brief Set conversion coding and rewrite GEN_CFG3.
    * @param format Two's-complement (default) or offset-binary.
    * @retval true  GEN_CFG3 updated.
+   * @retval false Bus error; the cached format is unchanged.
    */
   bool SetDataFormat(DataFormat format) noexcept;
 
@@ -197,6 +203,7 @@ public:
    * @param length        16- or 24-bit conversion words.
    * @param data_on_sdout ADC_DATA_SDOUT_EN.
    * @retval true  GEN_CFG3 updated.
+   * @retval false Bus error; the cached settings are unchanged.
    */
   bool SetDigitalInterface(DoutLaneMode lanes, DoutLength length, bool data_on_sdout) noexcept;
 
@@ -205,6 +212,7 @@ public:
    * @param mode   All16 / Eight / Four / Two.
    * @param ch_sel Group select (low 3 bits), used when not All16.
    * @retval true  ANA_CFG2 updated.
+   * @retval false Bus error; the cached mode is unchanged.
    */
   bool SetChannelCountMode(ChannelCountMode mode, uint8_t ch_sel = 0) noexcept;
 
@@ -212,6 +220,7 @@ public:
    * @brief Device power-down (PDN_CTL.DEVICE_PDN).
    * @param power_down true = power down, false = run.
    * @retval true  Write accepted.
+   * @retval false Bus error.
    */
   bool SetPowerDown(bool power_down) noexcept;
 
@@ -220,6 +229,7 @@ public:
    * @param mode       Pin function.
    * @param active_low true = invert pin polarity (bit 4).
    * @retval true  Write accepted.
+   * @retval false Bus error.
    */
   bool SetAlarmPin(AlarmPinMode mode, bool active_low = false) noexcept;
 
@@ -241,8 +251,8 @@ public:
   /**
    * @brief Pulse CONVST, wait DRDY (or fallback delay), clock all enabled channels.
    * @return Snapshot with @ref Snapshot::valid_mask bits set for clocked
-   *         channels. @ref Error::NotInitialized or @ref Error::Timeout on
-   *         failure.
+   *         channels. @ref Error::NotInitialized, @ref Error::Timeout or
+   *         @ref Error::SpiError (the burst transfer failed) on failure.
    * @pre @ref EnsureInitialized succeeded.
    */
   Snapshot ReadSnapshot() noexcept;
@@ -283,16 +293,19 @@ private:
   /**
    * @brief One 24-bit full-duplex config transfer.
    * @param tx24 Packed frame (@ref reg::PackWrite).
-   * @return Assembled MISO word (MSB-first).
+   * @param[out] rx24 Assembled MISO word (MSB-first), or nullptr to discard
+   *             it; 0 when the transfer failed.
+   * @return false if the port's transfer() reported a bus error.
    */
-  uint32_t spiTransfer24(uint32_t tx24) noexcept;
+  bool spiTransfer24(uint32_t tx24, uint32_t* rx24 = nullptr) noexcept;
 
   /**
    * @brief Select @p bank if needed, then write @p addr/@p data.
    * @param bank Target bank.
    * @param addr Register address.
    * @param data 16-bit payload.
-   * @retval true  Always today (SPI errors are not yet surfaced by the CRTP).
+   * @retval true  Every frame was transferred.
+   * @retval false The port reported a bus error.
    */
   bool writeRegister(RegisterBank bank, uint8_t addr, uint16_t data) noexcept;
 
@@ -300,13 +313,14 @@ private:
    * @brief Two-frame register read (GEN_CFG1 REG_RD then dummy clock).
    * @param bank  Bank containing @p addr.
    * @param addr  Register address in that bank.
-   * @param[out] data Unpacked 16-bit payload.
-   * @return true after the dummy frame (SPI errors are not yet surfaced).
+   * @param[out] data Unpacked 16-bit payload (0 on failure).
+   * @retval true  All frames were transferred.
+   * @retval false The port reported a bus error.
    * @see SBASB22 Table 7-17.
    */
   bool readRegister(RegisterBank bank, uint8_t addr, uint16_t& data) noexcept;
 
-  /** @brief Write BANK_SEL and cache @ref current_bank_. */
+  /** @brief Write BANK_SEL and cache @ref current_bank_ (invalidated on failure). */
   bool selectBank(RegisterBank bank) noexcept;
 
   /** @brief Write GEN_CFG3 from cached lane/length/SDOUT/format. */
@@ -326,6 +340,7 @@ private:
 
   bool initialized_ = false;  ///< @ref EnsureInitialized succeeded.
   RegisterBank current_bank_ = RegisterBank::Common;  ///< Last BANK_SEL.
+  bool bank_known_ = false; ///< false until a BANK_SEL write succeeds, and after a failed one.
   DataFormat format_ = ADS9324_CFG::DEFAULT_FORMAT;
   DoutLaneMode lanes_ = ADS9324_CFG::DEFAULT_LANES;
   DoutLength length_ = ADS9324_CFG::DEFAULT_LENGTH;

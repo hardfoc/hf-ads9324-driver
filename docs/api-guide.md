@@ -132,15 +132,15 @@ reference takes up to 30 ms to settle again (with 1 µF on REFCAP).
 | `Error::NotInitialized` | A read before a successful `EnsureInitialized()` | Initialise first |
 | `Error::Timeout` | DRDY did not rise within `DRDY_TIMEOUT_US` (1000 µs) | CONVST wiring, DRDY polarity, `SetAlarmPin()` |
 | `Error::InvalidChannel` | `ReadChannel()` with a channel above 15 | Use 0 to 15 |
-| `Error::SpiError` | The requested channel was not in the burst | A reduced channel-count mode is active |
-| A configuration call returns `false` | Channel above 15 | Use 0 to 15 |
+| `Error::SpiError` | The port's `transfer()` returned `false`, or the requested channel was not in the burst | Check the bus; with a reduced channel-count mode, read a channel the chip sends |
+| A configuration call returns `false` | Channel above 15, or the port's `transfer()` returned `false` | Use 0 to 15; check the bus |
 
 `GetDiagnostics()` returns the software counters (`snapshots`, `errors`) and the cached interface settings without
 touching the bus.
 
-!!! note "Bus errors are not detected"
-    `SpiInterface::transfer()` returns nothing, so the driver cannot see a failed SPI transaction: it reads
-    whatever arrived. DEVICE_ID at start-up is the only end-to-end check. If your SDK reports transfer errors,
-    count them in your port.
+!!! note "Bus errors"
+    The port's `transfer()` returns `false` on a bus error ([Porting](porting.md#rules-for-the-transfer)); the
+    driver stops the call that sent the frame and leaves its cached settings unchanged. A failed transfer is
+    the only error the bus can report: a wiring fault that still clocks bytes shows up as a wrong DEVICE_ID.
 
 [Troubleshooting](troubleshooting.md) maps symptoms to causes.
