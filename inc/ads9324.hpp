@@ -209,8 +209,16 @@ public:
 
   /**
    * @brief How many channels are clocked after CONVST (ANA_CFG2).
+   *
+   * In a reduced mode the chip sends a fixed channel set taken from both ends
+   * (SBASB22 Table 7-12); @ref ReadSnapshot stores each word under its real
+   * channel and sets @ref Snapshot::valid_mask accordingly
+   * (@ref reg::FrameChannel, @ref reg::FrameChannelMask).
+   *
    * @param mode   All16 / Eight / Four / Two.
-   * @param ch_sel Group select (low 3 bits), used when not All16.
+   * @param ch_sel ADC_CH_SEL (low 3 bits), used when not All16: bit 2 selects
+   *               the 8-channel group, bits 2:1 the 4-channel group, bits 2:0
+   *               the 2-channel pair.
    * @retval true  ANA_CFG2 updated.
    * @retval false Bus error; the cached mode is unchanged.
    */

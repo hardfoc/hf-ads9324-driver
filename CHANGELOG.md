@@ -11,6 +11,14 @@ code that used the affected API.
 - Host-test workflow (`ci-host-tests.yml`): GCC and Clang build and run the protocol tests and compile the
   documentation's code.
 
+### Fixed
+
+- `ReadSnapshot()` in a reduced channel-count mode (`SetChannelCountMode()` with `Eight`, `Four` or `Two`) stored
+  the *n*th word of the burst as channel *n*. The chip sends a fixed set from both ends of the device (SBASB22
+  Table 7-12, e.g. AIN1 to AIN4 and AIN13 to AIN16), so `count[4]` held AIN13 and was converted with channel 4's
+  range. Each word is now stored under its real channel and `valid_mask` marks those channels. New helpers
+  `reg::FrameChannel()`, `reg::FrameChannelMask()` and `reg::FrameChannelCount()`.
+
 ### Changed
 
 - The SPI port's `transfer()` now returns `bool` (`true` = bytes clocked, `false` = bus error) and the driver

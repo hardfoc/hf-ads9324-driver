@@ -107,6 +107,10 @@ first, lowest channel first (Figure 5-5):
 | `DoutLength::Bits16` (default) | 16 bits | 32 bytes |
 | `DoutLength::Bits24` | 24 bits; the driver keeps the top 16 | 48 bytes |
 
+With `ADC_NUM_SEL` set to 8, 4 or 2 channels the burst is shorter and carries the Table 7-12 channel set, for
+example AIN1 to AIN4 then AIN13 to AIN16; the driver stores each word under its channel
+([API guide](api-guide.md#read-fewer-channels)).
+
 With the default two's-complement coding, 0 V is `0x0000`, the most positive code is `0x7FFF` and −FS is `0x8000`. In
 offset-binary coding midscale is `0x8000`; the driver converts it to two's complement, so `Snapshot::count` is
 always signed.

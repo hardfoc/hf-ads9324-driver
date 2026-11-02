@@ -325,13 +325,7 @@ bool ADS9324<SpiType, HostType>::ProgramWindowComparator(uint8_t channel, int8_t
 
 template <typename SpiType, typename HostType>
 uint8_t ADS9324<SpiType, HostType>::activeChannelCount() const noexcept {
-  switch (ch_count_mode_) {
-    case ChannelCountMode::Eight: return 8;
-    case ChannelCountMode::Four:  return 4;
-    case ChannelCountMode::Two:   return 2;
-    case ChannelCountMode::All16:
-    default:                      return kNumChannels;
-  }
+  return reg::FrameChannelCount(ch_count_mode_);
 }
 
 /**
@@ -360,8 +354,9 @@ bool ADS9324<SpiType, HostType>::pulseConvstAndWait() noexcept {
 
 /**
  * One CS-low burst of N×2 (16-bit) or N×3 (24-bit) bytes. 24-bit mode still
- * uses the first two bytes as the 16-bit code. Channel i in the burst maps to
- * API channel i when ADC_NUM_SEL is All16.
+ * uses the first two bytes as the 16-bit code. Word i of the burst is API
+ * channel reg::FrameChannel(mode, ch_sel, i): i itself with ADC_NUM_SEL =
+ * All16, the Table 7-12 channel set (lowest channel first) otherwise.
  */
 template <typename SpiType, typename HostType>
 Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
@@ -388,16 +383,13 @@ Snapshot ADS9324<SpiType, HostType>::ReadSnapshot() noexcept {
   }
 
   for (uint8_t i = 0; i < n && i < kNumChannels; ++i) {
-    uint16_t raw = 0;
-    if (bytes_per == 2) {
-      raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[i * 2]) << 8) | rx[i * 2 + 1]);
-    } else {
-      raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[i * 3]) << 8) | rx[i * 3 + 1]);
-    }
+    const std::size_t at = static_cast<std::size_t>(i) * bytes_per;
+    const auto raw = static_cast<uint16_t>((static_cast<uint16_t>(rx[at]) << 8) | rx[at + 1]);
+    const uint8_t ch = reg::FrameChannel(ch_count_mode_, ch_sel_, i);
     const int16_t twos = WireWordToTwos(raw, format_);
-    snap.count[i] = twos;
-    snap.voltage[i] = CountToVoltage(i, twos);
-    snap.valid_mask = static_cast<uint16_t>(snap.valid_mask | (uint16_t{1} << i));
+    snap.count[ch] = twos;
+    snap.voltage[ch] = CountToVoltage(ch, twos);
+    snap.valid_mask = static_cast<uint16_t>(snap.valid_mask | (uint16_t{1} << ch));
   }
   ++snapshots_;
   return snap;

@@ -136,10 +136,10 @@ enum class DoutLength : uint8_t {
  * clocked. With @ref ChannelCountMode::All16, bits 0–15 are all set on success.
  */
 enum class ChannelCountMode : uint8_t {
-  All16 = 0,  ///< ADC_NUM_SEL = 00b — all 16 channels (default).
-  Eight = 1,  ///< First 8 channels of the selected group.
-  Four  = 2,  ///< First 4 channels of the selected group.
-  Two   = 3,  ///< First 2 channels of the selected group.
+  All16 = 0, ///< ADC_NUM_SEL = 00b — all 16 channels (default).
+  Eight = 1, ///< 8 channels, e.g. AIN1–4 + AIN13–16 (SBASB22 Table 7-12).
+  Four = 2,  ///< 4 channels, e.g. AIN1, AIN2, AIN15, AIN16 (Table 7-12).
+  Two = 3,   ///< 2 channels, e.g. AIN1 + AIN16 (Table 7-12).
 };
 
 /**

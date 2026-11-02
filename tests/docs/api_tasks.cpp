@@ -95,6 +95,18 @@ bool interface_task(Adc& adc) {
   // --8<-- [end:interface]
 }
 
+void fewer_task(Adc& adc) {
+  // --8<-- [start:fewer]
+  // Eight channels, group 0: the chip sends AIN1..AIN4 and AIN13..AIN16 (Table 7-12).
+  if (adc.SetChannelCountMode(ads9324::ChannelCountMode::Eight, 0)) {
+    const ads9324::Snapshot snap = adc.ReadSnapshot(); // 16-byte burst
+    if (snap.ok() && snap.hasChannel(12)) {            // valid_mask = 0xF00F
+      std::printf("AIN13: %d\n", snap.count[12]);      // stored under its own channel
+    }
+  }
+  // --8<-- [end:fewer]
+}
+
 bool alarm_task(Adc& adc) {
   // --8<-- [start:alarm]
   // Window comparator on AIN1. Thresholds are compared with the top 8 bits of the code, so one

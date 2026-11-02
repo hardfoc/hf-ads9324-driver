@@ -89,11 +89,23 @@ from reaching it.
 `SetChannelCountMode(mode, ch_sel)` writes ANA_CFG2 so the chip converts and outputs 8, 4 or 2 channels, which
 shortens the burst.
 
-!!! warning "Channel numbers in reduced modes"
-    The chip outputs a fixed set of channels in these modes, taken from both ends (Table 7-12): with
-    `ChannelCountMode::Eight` and `ch_sel` 0 it sends AIN1 to AIN4 and AIN13 to AIN16. `ReadSnapshot()` stores
-    the *n*th word of the burst as channel *n*, so `count[4]` then holds AIN13, not AIN5, and the voltage uses
-    channel 4's range. Use `ChannelCountMode::All16` (the default) unless you map the channels yourself.
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:fewer"
+```
+
+The chip outputs a fixed set of channels in these modes, taken from both ends of the device, lowest channel first
+(Table 7-12). `ch_sel` is the `ADC_CH_SEL` field; only its top bits pick the group:
+
+| `ChannelCountMode` | `ch_sel` | Channels in the burst |
+| --- | --- | --- |
+| `All16` (default) | any | AIN1 to AIN16 |
+| `Eight` | `0b0xx` / `0b1xx` | AIN1 to AIN4 and AIN13 to AIN16 / AIN5 to AIN12 |
+| `Four` | `0b00x`, `0b01x`, `0b10x`, `0b11x` | AIN1, 2, 15, 16 / AIN3, 4, 13, 14 / AIN5, 6, 11, 12 / AIN7 to AIN10 |
+| `Two` | `0b000` to `0b111` | AIN1 and AIN16, AIN2 and AIN15, ... AIN8 and AIN9 |
+
+`ReadSnapshot()` stores each word under its real channel, so `count[12]` is AIN13 in every mode, and sets only
+those channels in `valid_mask`. `reg::FrameChannel(mode, ch_sel, word)` and `reg::FrameChannelMask(mode, ch_sel)`
+give the same mapping. `ReadChannel()` for a channel the chip does not send returns `Error::SpiError`.
 
 ## Window comparator and alarm pin
 
@@ -132,7 +144,7 @@ reference takes up to 30 ms to settle again (with 1 µF on REFCAP).
 | `Error::NotInitialized` | A read before a successful `EnsureInitialized()` | Initialise first |
 | `Error::Timeout` | DRDY did not rise within `DRDY_TIMEOUT_US` (1000 µs) | CONVST wiring, DRDY polarity, `SetAlarmPin()` |
 | `Error::InvalidChannel` | `ReadChannel()` with a channel above 15 | Use 0 to 15 |
-| `Error::SpiError` | The port's `transfer()` returned `false`, or the requested channel was not in the burst | Check the bus; with a reduced channel-count mode, read a channel the chip sends |
+| `Error::SpiError` | The port's `transfer()` returned `false`, or the requested channel was not in the burst | Check the bus; with a reduced channel-count mode, read a channel the chip sends ([table](#read-fewer-channels)) |
 | A configuration call returns `false` | Channel above 15, or the port's `transfer()` returned `false` | Use 0 to 15; check the bus |
 
 `GetDiagnostics()` returns the software counters (`snapshots`, `errors`) and the cached interface settings without

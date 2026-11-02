@@ -234,6 +234,88 @@ inline constexpr uint16_t DWC_CFG_STAT_RST = (1u << 15);  ///< Clear DWC status.
                                ((static_cast<uint16_t>(num) & 0x3u) << 2));
 }
 
+/**
+ * @brief Number of channel words in one conversion burst for an ADC_NUM_SEL mode.
+ * @param mode Channel-count mode.
+ * @return 16, 8, 4 or 2.
+ */
+[[nodiscard]] inline constexpr uint8_t FrameChannelCount(ChannelCountMode mode) noexcept {
+  switch (mode) {
+  case ChannelCountMode::Eight:
+    return 8;
+  case ChannelCountMode::Four:
+    return 4;
+  case ChannelCountMode::Two:
+    return 2;
+  case ChannelCountMode::All16:
+  default:
+    return kNumChannels;
+  }
+}
+
+/**
+ * @brief API channel (0 = AIN1) carried by word @p slot of a conversion burst.
+ *
+ * SBASB22 Table 7-12 (ADC Channel Modes): in a reduced mode the chip reports
+ * channels from both ends of the device, lowest channel number first. Group
+ * `g` of a mode with `n` channels reports `n/2` channels upwards from
+ * AIN(g·n/2 + 1) and the mirrored `n/2` channels ending at AIN(16 − g·n/2).
+ * The group is ADC_CH_SEL[2] for 8 channels, ADC_CH_SEL[2:1] for 4 and
+ * ADC_CH_SEL[2:0] for 2 (the other bits are don't-care). Example: 8 channels,
+ * ADC_CH_SEL = 0xxb → AIN1, AIN2, AIN3, AIN4, AIN13, AIN14, AIN15, AIN16.
+ *
+ * @param mode   ADC_NUM_SEL.
+ * @param ch_sel ADC_CH_SEL (low 3 bits used).
+ * @param slot   Word index in the burst, 0 = first word clocked out.
+ * @return 0-based API channel, or @ref kNumChannels if @p slot is not in the burst.
+ */
+[[nodiscard]] inline constexpr uint8_t FrameChannel(ChannelCountMode mode, uint8_t ch_sel,
+                                                    uint8_t slot) noexcept {
+  const uint8_t n = FrameChannelCount(mode);
+  if (slot >= n) {
+    return kNumChannels;
+  }
+  if (n == kNumChannels) {
+    return slot;
+  }
+  const uint8_t half = static_cast<uint8_t>(n / 2u);
+  uint8_t group = 0;
+  switch (mode) {
+  case ChannelCountMode::Eight:
+    group = static_cast<uint8_t>((ch_sel >> 2) & 0x1u);
+    break;
+  case ChannelCountMode::Four:
+    group = static_cast<uint8_t>((ch_sel >> 1) & 0x3u);
+    break;
+  case ChannelCountMode::Two:
+    group = static_cast<uint8_t>(ch_sel & 0x7u);
+    break;
+  case ChannelCountMode::All16:
+  default:
+    break;
+  }
+  const uint8_t low = static_cast<uint8_t>(group * half);
+  if (slot < half) {
+    return static_cast<uint8_t>(low + slot);
+  }
+  return static_cast<uint8_t>(kNumChannels - low - half + (slot - half));
+}
+
+/**
+ * @brief Bit mask of the API channels a conversion burst carries.
+ * @param mode   ADC_NUM_SEL.
+ * @param ch_sel ADC_CH_SEL.
+ * @return Bit N set for each channel N in the burst (see @ref FrameChannel).
+ */
+[[nodiscard]] inline constexpr uint16_t FrameChannelMask(ChannelCountMode mode,
+                                                         uint8_t ch_sel) noexcept {
+  uint16_t mask = 0;
+  for (uint8_t slot = 0; slot < FrameChannelCount(mode); ++slot) {
+    mask = static_cast<uint16_t>(mask | (uint16_t{1} << FrameChannel(mode, ch_sel, slot)));
+  }
+  return mask;
+}
+
 /** @} */
 
 }  // namespace reg

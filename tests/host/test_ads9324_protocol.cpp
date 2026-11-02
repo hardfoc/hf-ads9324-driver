@@ -230,6 +230,83 @@ void test_legacy_void_port() {
   CHECK(adc.ReadSnapshot().ok());
 }
 
+// SBASB22 Table 7-12, ADC Channel Modes: hardware channel numbers (AIN1 = 1) in output order.
+struct ModeRow {
+  ads9324::ChannelCountMode mode;
+  uint8_t ch_sel;
+  uint8_t ain[8];
+};
+constexpr ModeRow kTable712[] = {
+    {ads9324::ChannelCountMode::Eight, 0b000, {1, 2, 3, 4, 13, 14, 15, 16}},
+    {ads9324::ChannelCountMode::Eight, 0b100, {5, 6, 7, 8, 9, 10, 11, 12}},
+    {ads9324::ChannelCountMode::Four, 0b000, {1, 2, 15, 16}},
+    {ads9324::ChannelCountMode::Four, 0b010, {3, 4, 13, 14}},
+    {ads9324::ChannelCountMode::Four, 0b100, {5, 6, 11, 12}},
+    {ads9324::ChannelCountMode::Four, 0b110, {7, 8, 9, 10}},
+    {ads9324::ChannelCountMode::Two, 0b000, {1, 16}},
+    {ads9324::ChannelCountMode::Two, 0b001, {2, 15}},
+    {ads9324::ChannelCountMode::Two, 0b010, {3, 14}},
+    {ads9324::ChannelCountMode::Two, 0b011, {4, 13}},
+    {ads9324::ChannelCountMode::Two, 0b100, {5, 12}},
+    {ads9324::ChannelCountMode::Two, 0b101, {6, 11}},
+    {ads9324::ChannelCountMode::Two, 0b110, {7, 10}},
+    {ads9324::ChannelCountMode::Two, 0b111, {8, 9}},
+};
+
+void test_channel_mode_order() {
+  using namespace ads9324;
+  for (uint8_t slot = 0; slot < kNumChannels; ++slot) {
+    CHECK(reg::FrameChannel(ChannelCountMode::All16, 5, slot) == slot);
+  }
+  CHECK(reg::FrameChannelMask(ChannelCountMode::All16, 0) == 0xFFFF);
+  for (const ModeRow& row : kTable712) {
+    const uint8_t n = reg::FrameChannelCount(row.mode);
+    // Don't-care ADC_CH_SEL bits (Table 7-12 "x") must not change the set.
+    const uint8_t dont_care = row.mode == ChannelCountMode::Eight  ? 0b011
+                              : row.mode == ChannelCountMode::Four ? 0b001
+                                                                   : 0b000;
+    for (uint8_t slot = 0; slot < n; ++slot) {
+      CHECK(reg::FrameChannel(row.mode, row.ch_sel, slot) == row.ain[slot] - 1);
+      CHECK(reg::FrameChannel(row.mode, static_cast<uint8_t>(row.ch_sel | dont_care), slot) ==
+            row.ain[slot] - 1);
+    }
+    CHECK(reg::FrameChannel(row.mode, row.ch_sel, n) == kNumChannels);
+  }
+
+  // A snapshot in 8-channel mode, group 0: words are AIN1-4 then AIN13-16.
+  MockBus bus;
+  Adc adc(bus, bus);
+  CHECK(adc.EnsureInitialized());
+  ChannelConfig wide;
+  wide.range = InputRange::PlusMinus10V;
+  CHECK(adc.ConfigureChannel(12, wide)); // AIN13
+  CHECK(adc.SetChannelCountMode(ChannelCountMode::Eight, 0));
+  CHECK(bus.mem[0][reg::ANA_CFG2] == reg::AnaCfg2Value(ChannelCountMode::Eight, 0));
+  for (uint8_t w = 0; w < 8; ++w) {
+    bus.conversion_bytes[w * 2] = 0x10;
+    bus.conversion_bytes[w * 2 + 1] = w; // word w = 0x1000 + w
+  }
+  const Snapshot snap = adc.ReadSnapshot();
+  CHECK(snap.ok());
+  CHECK(snap.valid_mask == 0xF00F);
+  CHECK(snap.count[0] == 0x1000);
+  CHECK(snap.count[3] == 0x1003);
+  CHECK(snap.count[4] == 0); // AIN5 is not in the burst
+  CHECK(!snap.hasChannel(4));
+  CHECK(snap.count[12] == 0x1004); // the fifth word is AIN13
+  CHECK(snap.count[15] == 0x1007);
+  CHECK(snap.voltage[12] == TwosToVoltage(0x1004, 10.0f)); // AIN13's own range
+  CHECK(adc.ReadChannel(13).count == 0x1005);
+  CHECK(adc.ReadChannel(4).error == Error::SpiError);
+
+  // Two channels, pair 0b011: AIN4 then AIN13.
+  CHECK(adc.SetChannelCountMode(ChannelCountMode::Two, 0b011));
+  const Snapshot pair = adc.ReadSnapshot();
+  CHECK(pair.valid_mask == ((1u << 3) | (1u << 12)));
+  CHECK(pair.count[3] == 0x1000);
+  CHECK(pair.count[12] == 0x1001);
+}
+
 }  // namespace
 
 int main() {
@@ -237,6 +314,7 @@ int main() {
 
   test_bus_errors_propagate();
   test_legacy_void_port();
+  test_channel_mode_order();
 
   CHECK(FullScaleVolts(InputRange::PlusMinus10V) == 10.0f);
   CHECK(TwosToVoltage(0, 5.0f) == 0.0f);

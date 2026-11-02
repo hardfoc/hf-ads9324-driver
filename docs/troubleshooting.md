@@ -19,7 +19,7 @@ remaining problem is in CONVST, DRDY or the channel settings.
 | --- | --- | --- |
 | `Error::Timeout` | CONVST not reaching the chip, DRDY not wired, DRDY inverted, or DRDY/ALARM muxed to the comparator | Scope CONVST and DRDY; `SetAlarmPin(AlarmPinMode::Drdy)`; or `HasDrdy()` = `false` |
 | All counts `0` or `-1` | Conversion data still on D0 to D7 (8-lane reset mode), so SDOUT is idle | Call `EnsureInitialized()` after every power cycle or hardware reset; do not change `SetDigitalInterface()` away from 1 lane on SDOUT |
-| Channels look shifted | A reduced `SetChannelCountMode()` is active; the chip sends a fixed channel set | Use `ChannelCountMode::All16` ([API guide](api-guide.md#read-fewer-channels)) |
+| A channel reads 0 and `hasChannel()` is `false` | A reduced `SetChannelCountMode()` is active and the chip does not send that channel | Pick the group that contains it, or `ChannelCountMode::All16` ([API guide](api-guide.md#read-fewer-channels)) |
 
 ## Values
 
