@@ -986,6 +986,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#optional-reset-pin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional reset pin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1325,6 +1336,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#optional-reset-pin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional reset pin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1386,7 +1408,7 @@
 <p>Run the driver on a new MCU by writing two small classes: one for SPI, one for CONVST, DRDY and delays.</p>
 <p>The driver never calls your SDK directly. It calls six methods on classes you derive from
 <code>ads9324::SpiInterface&lt;Self&gt;</code> and <code>ads9324::HostInterface&lt;Self&gt;</code> (in
-<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a>). The base classes use CRTP: the calls are
+<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a>). The base classes use CRTP: the calls are
 resolved at compile time, so there are no virtual functions, no vtable and nothing to allocate.</p>
 <figure class="hf-figure">
 <img src="../diagrams/driver-layers.svg#only-light" alt="Layer diagram: the application calls the hardware-agnostic ADS9324 driver and its methods, which use the SpiInterface and HostInterface contracts, which call the platform port you write, which drives the SPI bus, CONVST and DRDY of the ADS9324." width="1200" loading="lazy"><img src="../diagrams/driver-layers.dark.svg#only-dark" alt="Layer diagram: the application calls the hardware-agnostic ADS9324 driver and its methods, which use the SpiInterface and HostInterface contracts, which call the platform port you write, which drives the SPI bus, CONVST and DRDY of the ADS9324." width="1200" loading="lazy">
@@ -1396,7 +1418,7 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 <details class="hf-figure-desc">
 <summary>Figure description and sources</summary>
 <p>From top to bottom. Your application talks to one ADS9324<Spi, Host> object, whose public methods are listed from inc/ads9324.hpp. The core packs 24-bit register frames, selects register banks, merges the PGA nibbles and unpacks conversion bursts. It reaches the hardware only through two CRTP contracts in inc/ads9324_spi_interface.hpp: SpiInterface (one transfer method) and HostInterface (CONVST, DRDY and two delays). The platform port is the only code you write: two small classes, or one class implementing both. Below it is the hardware.</p>
-<p>Drawn from: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a> <code>ADS9324 public methods</code>; <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a> <code>SpiInterface, HostInterface</code>; figure module <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
+<p>Drawn from: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a> <code>ADS9324 public methods</code>; <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a> <code>SpiInterface, HostInterface</code>; figure module <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
 </details>
 <h2 id="what-you-implement">What you implement<a class="headerlink" href="#what-you-implement" title="Permanent link">&para;</a></h2>
 <table>
@@ -1411,7 +1433,7 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 <tr>
 <td><code>transfer(tx, rx, len)</code></td>
 <td><code>SpiInterface</code></td>
-<td>One full-duplex transfer of <code>len</code> bytes with CS low for all of them. <code>tx == nullptr</code>: send zeros. <code>rx == nullptr</code>: discard the received bytes</td>
+<td>One full-duplex transfer of <code>len</code> bytes with CS low for all of them. <code>tx == nullptr</code>: send zeros. <code>rx == nullptr</code>: discard the received bytes. Return <code>true</code> when the bytes went out, <code>false</code> on a bus error</td>
 </tr>
 <tr>
 <td><code>ConvstWrite(high)</code></td>
@@ -1438,6 +1460,11 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 <td><code>HostInterface</code></td>
 <td>Block for at least <code>ms</code> milliseconds (30 ms power-up, 1 ms after reset)</td>
 </tr>
+<tr>
+<td><code>ResetWrite(high)</code></td>
+<td>your host class, optional</td>
+<td>Drive the RESET pin: <code>false</code> = low (chip held in reset), <code>true</code> = released. Only needed for <code>HardwareReset()</code></td>
+</tr>
 </tbody>
 </table>
 <h2 id="the-port">The port<a class="headerlink" href="#the-port" title="Permanent link">&para;</a></h2>
@@ -1445,23 +1472,28 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">MySpi</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">SpiInterface</span><span class="o">&lt;</span><span class="n">MySpi</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">public</span><span class="o">:</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="c1">// tx == nullptr: clock out zeros. rx == nullptr: discard what arrives on SDOUT.</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">transfer</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">tx</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">rx</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="n">platform_spi_transfer</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span><span class="w"> </span><span class="n">rx</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">};</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">// Host: the CONVST output, the optional DRDY input and two delays.</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">HostInterface</span><span class="o">&lt;</span><span class="n">MyHost</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">public</span><span class="o">:</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kConvst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">   </span><span class="c1">// GPIO wired to CONVST (pin 50)</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kDrdy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">;</span><span class="w">    </span><span class="c1">// GPIO wired to DRDY/ALARM (pin 49)</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ConvstWrite</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">high</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_gpio_write</span><span class="p">(</span><span class="n">kConvst</span><span class="p">,</span><span class="w"> </span><span class="n">high</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">DrdyRead</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">platform_gpio_read</span><span class="p">(</span><span class="n">kDrdy</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// high = conversion done</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasDrdy</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">                   </span><span class="c1">// false: fixed wait instead</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">DelayUs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">us</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">us</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">DelayMs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">ms</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000U</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">};</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="c1">// Return false on a bus error: the driver then fails the call that sent the frame.</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">transfer</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">tx</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">rx</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">platform_spi_transfer</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span><span class="w"> </span><span class="n">rx</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">};</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">// Host: the CONVST output, the optional DRDY input and two delays.</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">HostInterface</span><span class="o">&lt;</span><span class="n">MyHost</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">public</span><span class="o">:</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kConvst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">   </span><span class="c1">// GPIO wired to CONVST (pin 50)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kDrdy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">;</span><span class="w">    </span><span class="c1">// GPIO wired to DRDY/ALARM (pin 49)</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kReset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12</span><span class="p">;</span><span class="w">   </span><span class="c1">// GPIO wired to RESET (pin 32); optional</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ConvstWrite</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">high</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_gpio_write</span><span class="p">(</span><span class="n">kConvst</span><span class="p">,</span><span class="w"> </span><span class="n">high</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">DrdyRead</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">platform_gpio_read</span><span class="p">(</span><span class="n">kDrdy</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// high = conversion done</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasDrdy</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">                   </span><span class="c1">// false: fixed wait instead</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">DelayUs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">us</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">us</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">DelayMs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">ms</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000U</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ResetWrite</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">high</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="n">platform_gpio_write</span><span class="p">(</span><span class="n">kReset</span><span class="p">,</span><span class="w"> </span><span class="n">high</span><span class="p">);</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="c1">// optional: HardwareReset()</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="p">};</span>
 </span></code></pre></div>
 <p>One class may implement both contracts; pass the same object twice: <code>ADS9324&lt;Bus, Bus&gt; adc(bus, bus)</code>.</p>
 <h2 id="rules-for-the-transfer">Rules for the transfer<a class="headerlink" href="#rules-for-the-transfer" title="Permanent link">&para;</a></h2>
@@ -1474,20 +1506,31 @@ resolved at compile time, so there are no virtual functions, no vtable and nothi
 <li><strong>Own the bus.</strong> Do not share this CS with another device, and do not let another task use the bus in the middle
   of a register read (two frames).</li>
 </ul>
-<p><code>transfer()</code> returns <code>void</code>, so the driver cannot learn about a bus error. Log or count errors in your port.</p>
+<p><code>transfer()</code> returns <code>bool</code>: <code>false</code> tells the driver the transfer failed. The call that sent the frame stops
+there: configuration calls return <code>false</code>, <code>ReadDeviceId()</code> returns 0 and the reads return <code>Error::SpiError</code>. The
+driver's cached settings change only after the frames that set them went out, and after a failed <code>BANK_SEL</code> frame
+the next access selects the bank again.</p>
+<p>Return the SDK's status as a <code>bool</code> (<code>== ESP_OK</code>, <code>== HAL_OK</code>): any other return type is rejected at compile time,
+so an <code>esp_err_t</code> (0 = success) cannot be read as <code>false</code>. A port written for the earlier contract, with a <code>void</code>
+<code>transfer()</code>, still compiles; the driver then treats every transfer as successful.</p>
 <h2 id="convst-and-drdy">CONVST and DRDY<a class="headerlink" href="#convst-and-drdy" title="Permanent link">&para;</a></h2>
 <p>The driver holds CONVST high for 1 µs and then drives it low; the falling edge samples every channel. The chip
 needs only 50 ns high and 50 ns low, so any GPIO is fast enough. DRDY is active high by default; if your board
 inverts it, invert it in <code>DrdyRead()</code>, not with <code>SetAlarmPin(..., true)</code>.</p>
 <p>Without DRDY (<code>HasDrdy()</code> returns <code>false</code>) the driver waits <code>CONV_FALLBACK_US</code> (10 µs) after the falling edge. The
 conversion takes 1.25 µs without oversampling, so the default leaves margin.</p>
+<h2 id="optional-reset-pin">Optional reset pin<a class="headerlink" href="#optional-reset-pin" title="Permanent link">&para;</a></h2>
+<p>If RESET (pin 32) is wired to a GPIO, add <code>void ResetWrite(bool high)</code> to the host class, as the port above does.
+The driver detects it at compile time (<code>ADS9324&lt;...&gt;::HasHardwareReset()</code>); it is not part of <code>HostInterface</code>, so a
+port without it compiles unchanged and <code>HardwareReset()</code> returns <code>false</code>. Hold RESET high from power-up, for
+example with a pull-up, so the chip is not held in reset before your code runs.</p>
 <h2 id="reference-implementation">Reference implementation<a class="headerlink" href="#reference-implementation" title="Permanent link">&para;</a></h2>
-<p>The ESP32 examples use <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/esp32_ads9324_bus.hpp"><code>esp32_ads9324_bus.hpp</code></a>: one class that
+<p>The ESP32 examples use <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/esp32_ads9324_bus.hpp"><code>esp32_ads9324_bus.hpp</code></a>: one class that
 implements both contracts with the ESP-IDF <code>spi_master</code> driver (hardware CS, one transaction per call), GPIO for
 CONVST and DRDY, <code>esp_rom_delay_us()</code> and FreeRTOS delays. Start from it for any ESP-IDF target.</p>
 <h2 id="check-your-port">Check your port<a class="headerlink" href="#check-your-port" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Build it: the port on this page is compiled by the host CI from <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/tests/docs/my_port.hpp"><code>tests/docs/</code></a>,
+<li>Build it: the port on this page is compiled by the host CI from <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/docs/my_port.hpp"><code>tests/docs/</code></a>,
    with the driver instantiated over it.</li>
 <li>Call <code>EnsureInitialized()</code>. If it fails, print <code>ReadDeviceId()</code>: <code>0x0004</code> proves SDI, SCLK, CS and SDOUT end to
    end.</li>

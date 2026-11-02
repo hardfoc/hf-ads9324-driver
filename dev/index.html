@@ -1306,7 +1306,7 @@ class that drives CONVST, reads DRDY and waits; it does the rest: the initialisa
 <dt>Driver mode</dt>
 <dd>1-lane, 16-bit conversion data on SDOUT (GEN_CFG3 = <code>0x0032</code>), sharing the register SPI bus</dd>
 </dl>
-<p><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/datasheet/ads9324.pdf">Datasheet (SBASB22)</a> ·
+<p><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/datasheet/ads9324.pdf">Datasheet (SBASB22)</a> ·
 <a href="https://www.ti.com/product/ADS9324">Product page</a></p>
 </div>
 <h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
@@ -1315,8 +1315,10 @@ class that drives CONVST, reads DRDY and waits; it does the rest: the initialisa
   settings. See <a href="api-guide/">API guide</a>.</li>
 <li><strong>Bring-up in one call.</strong> <code>EnsureInitialized()</code> waits for the supplies, resets the chip, selects 1-lane SDOUT
   output and checks DEVICE_ID. See <a href="quickstart/">Quickstart</a>.</li>
-<li><strong>A front end per channel.</strong> Range, input type, filter bandwidth, offset and gain for each of the 16 inputs.
-  See <a href="pga-and-calibration/">PGA and calibration</a>.</li>
+<li><strong>A front end per channel.</strong> Range, input type, filter bandwidth, offset and gain for each of the 16 inputs,
+  plus the on-chip ADC calibration. See <a href="pga-and-calibration/">PGA and calibration</a>.</li>
+<li><strong>Oversampling.</strong> The block-average filter, 2 to 128 samples per snapshot. See
+  <a href="api-guide/#average-with-oversampling">API guide</a>.</li>
 <li><strong>Simultaneous snapshots in volts.</strong> <code>ReadSnapshot()</code> pulses CONVST, waits for DRDY and returns 16 counts and
   16 voltages, each scaled with its channel's range. See <a href="registers/">Registers and SPI frames</a>.</li>
 <li><strong>Zero-overhead portability.</strong> The port is two CRTP classes: no virtual calls, no heap, no RTOS dependency.

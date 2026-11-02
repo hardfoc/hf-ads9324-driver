@@ -1336,13 +1336,31 @@ is needed.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/tests/host/test_ads9324_protocol.cpp"><code>tests/host/test_ads9324_protocol.cpp</code></a></td>
-<td>Frame packing, GEN_CFG3 value, PGA nibble encoding, bank mapping, the initialisation sequence and DEVICE_ID, channel configuration, offset and gain registers, power-down, snapshot unpacking, <code>ReadChannel()</code> errors</td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/host/test_ads9324_protocol.cpp"><code>tests/host/test_ads9324_protocol.cpp</code></a></td>
+<td>Frame packing, GEN_CFG3 value, PGA nibble encoding, bank mapping, the initialisation sequence and DEVICE_ID, channel configuration, offset and gain registers, power-down, snapshot unpacking and the reduced channel-count layouts, <code>ReadChannel()</code> errors, bus-error propagation, software and hardware reset, reference selection, oversampling, ADC_CAL and the system-correction bits</td>
+</tr>
+<tr>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/host/test_ads9324_config_defaults.cpp"><code>tests/host/test_ads9324_config_defaults.cpp</code></a></td>
+<td>Built with non-default <code>CONFIG_ADS9324_*</code> values: initialisation and reset write them to the chip</td>
+</tr>
+<tr>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/host/test_ads9324_version.cpp"><code>tests/host/test_ads9324_version.cpp</code></a></td>
+<td><code>GetDriverVersion*()</code> equal the project version, and follow a generated header with another version</td>
+</tr>
+<tr>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/check_version_copy.cmake"><code>tests/check_version_copy.cmake</code></a></td>
+<td><code>idf_component.yml</code> and <code>Doxyfile</code> carry the project version</td>
+</tr>
+<tr>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/install_consumer.cmake"><code>tests/install_consumer.cmake</code></a></td>
+<td><code>cmake --install</code> into the build tree, then a <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/install_consumer/main.cpp"><code>find_package()</code> consumer</a> that includes every public header and links <code>hf::ads9324</code></td>
 </tr>
 </tbody>
 </table>
+<p>The build also compiles the protocol test at <code>-O2 -Werror</code> (target <code>hf_ads9324_optimised_build</code>, never run): GCC
+reports array-bounds and similar warnings only with optimisation, and the ESP-IDF Release builds treat them as errors.</p>
 <h2 id="documentation-snippets">Documentation snippets<a class="headerlink" href="#documentation-snippets" title="Permanent link">&para;</a></h2>
-<p>Every C++ block on this site is included from <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/tests/docs/my_port.hpp"><code>tests/docs/</code></a>, which the host build
+<p>Every C++ block on this site is included from <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/docs/my_port.hpp"><code>tests/docs/</code></a>, which the host build
 compiles (target <code>hf_ads9324_doc_snippets</code>) with the driver instantiated over the documented port. A change to the
 API that breaks a page breaks the build first.</p>
 <h2 id="ci-workflows">CI workflows<a class="headerlink" href="#ci-workflows" title="Permanent link">&para;</a></h2>

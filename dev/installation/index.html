@@ -1423,10 +1423,14 @@ the generated version header) and requires C++20 (<code>cxx_std_20</code>), so y
 </tr>
 </tbody>
 </table>
-<p>The project also installs a CMake package: after <code>cmake --install</code>, <code>find_package(hf_ads9324)</code> provides the same
-<code>hf::ads9324</code> target.</p>
+<p>The project also installs a CMake package: <code>cmake --install</code> puts every header in <code>include/</code> (the <code>inc/</code> headers,
+<code>ads9324.ipp</code> and the generated <code>ads9324_version.h</code>), and <code>find_package(hf_ads9324 CONFIG)</code> then provides the same
+<code>hf::ads9324</code> target (<code>hf::hf_ads9324</code>, the name earlier installs exported, still works):</p>
+<div class="language-cmake highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">find_package</span><span class="p">(</span><span class="s">hf_ads9324</span><span class="w"> </span><span class="s">1.0</span><span class="w"> </span><span class="s">CONFIG</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">my_app</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">hf::ads9324</span><span class="p">)</span>
+</span></code></pre></div>
 <h2 id="esp-idf">ESP-IDF<a class="headerlink" href="#esp-idf" title="Permanent link">&para;</a></h2>
-<p>The ESP-IDF component wrapper is <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/components/hf_ads9324/CMakeLists.txt"><code>examples/esp32/components/hf_ads9324/</code></a>.
+<p>The ESP-IDF component wrapper is <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/components/hf_ads9324/CMakeLists.txt"><code>examples/esp32/components/hf_ads9324/</code></a>.
 Copy that folder into your project's <code>components/</code> (or point <code>EXTRA_COMPONENT_DIRS</code> at it) and set the
 <code>HF_ADS9324_ROOT</code> cache variable to the driver checkout; the wrapper stops with a clear message when the path is
 wrong. Your component then declares <code>REQUIRES hf_ads9324</code>.</p>
@@ -1442,23 +1446,27 @@ wrong. Your component then declares <code>REQUIRES hf_ads9324</code>.</p>
 <tbody>
 <tr>
 <td>Settings</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/cmake/hf_ads9324_build_settings.cmake"><code>cmake/hf_ads9324_build_settings.cmake</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/cmake/hf_ads9324_build_settings.cmake"><code>cmake/hf_ads9324_build_settings.cmake</code></a></td>
 <td>Version, include directories, sources: the single source of truth</td>
 </tr>
 <tr>
 <td>Library</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
 <td>Interface library, install and package files, host-test switch</td>
 </tr>
 <tr>
 <td>ESP-IDF</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/components/hf_ads9324/CMakeLists.txt"><code>examples/esp32/components/hf_ads9324/CMakeLists.txt</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/components/hf_ads9324/CMakeLists.txt"><code>examples/esp32/components/hf_ads9324/CMakeLists.txt</code></a></td>
 <td>IDF component wrapper over the same settings</td>
 </tr>
 </tbody>
 </table>
-<p>The version is set once in the settings file and written into <code>ads9324_version.h</code> at configure time
-(<code>HF_ADS9324_VERSION_STRING</code>, <code>HF_ADS9324_VERSION_MAJOR</code> and so on).</p>
+<p>The version is set once in the settings file. It becomes the CMake project version (<code>PROJECT_VERSION</code>) and the
+package version, and is written into <code>ads9324_version.h</code> at configure time (<code>HF_ADS9324_VERSION_STRING</code>,
+<code>HF_ADS9324_VERSION_MAJOR</code> and so on); <code>ADS9324&lt;...&gt;::GetDriverVersion()</code> and <code>GetDriverVersionMajor()</code> /
+<code>Minor()</code> / <code>Patch()</code> return those macros. <code>ads9324.hpp</code> includes the generated header, so build through CMake or
+the ESP-IDF component (both generate it). The host tests fail when the getters, the ESP-IDF component manifest
+(<code>idf_component.yml</code>) or the <code>Doxyfile</code> disagree with the settings file.</p>
 <h2 id="compile-time-switches">Compile-time switches<a class="headerlink" href="#compile-time-switches" title="Permanent link">&para;</a></h2>
 <p>The driver's defaults (power-on delay, DRDY timeout, default range and coding) are <code>CONFIG_ADS9324_*</code> macros.
 <a href="../configuration/">Configuration</a> lists them and shows how to set them from CMake or ESP-IDF.</p>

@@ -908,6 +908,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reset-and-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reset and reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configure-the-channels" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -926,6 +937,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Calibrate offset and gain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on-chip-adc-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-chip ADC calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -956,6 +984,17 @@
     <span class="md-ellipsis">
       
         Read fewer channels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#average-with-oversampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Average with oversampling
       
     </span>
   </a>
@@ -1336,6 +1375,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reset-and-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reset and reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configure-the-channels" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1354,6 +1404,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Calibrate offset and gain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on-chip-adc-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-chip ADC calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1384,6 +1451,17 @@
     <span class="md-ellipsis">
       
         Read fewer channels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#average-with-oversampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Average with oversampling
       
     </span>
   </a>
@@ -1451,10 +1529,10 @@
 <h1 id="api-guide">API guide<a class="headerlink" href="#api-guide" title="Permanent link">&para;</a></h1>
 <p>How to do the common jobs with the driver: initialise, configure channels, calibrate, read and handle errors.</p>
 <p>Every snippet on this page is compiled by the host CI from
-<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/tests/docs/api_tasks.cpp"><code>tests/docs/api_tasks.cpp</code></a>, with <code>adc</code> an <code>ads9324::ADS9324&lt;MySpi, MyHost&gt;</code> over
+<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/tests/docs/api_tasks.cpp"><code>tests/docs/api_tasks.cpp</code></a>, with <code>adc</code> an <code>ads9324::ADS9324&lt;MySpi, MyHost&gt;</code> over
 the <a href="../porting/">port</a>. The <a href="../api-reference/">API reference</a> lists every member.</p>
 <h2 id="the-shape-of-the-api">The shape of the API<a class="headerlink" href="#the-shape-of-the-api" title="Permanent link">&para;</a></h2>
-<p>One <code>ADS9324&lt;Spi, Host&gt;</code> object per chip. Its methods fall into five groups:</p>
+<p>One <code>ADS9324&lt;Spi, Host&gt;</code> object per chip. Its methods fall into these groups:</p>
 <table>
 <thead>
 <tr>
@@ -1465,15 +1543,19 @@ the <a href="../porting/">port</a>. The <a href="../api-reference/">API referenc
 <tbody>
 <tr>
 <td>Bring-up</td>
-<td><code>EnsureInitialized()</code>, <code>IsInitialized()</code>, <code>SoftwareReset()</code>, <code>ReadDeviceId()</code></td>
+<td><code>EnsureInitialized()</code>, <code>IsInitialized()</code>, <code>SoftwareReset()</code>, <code>HardwareReset()</code>, <code>ReadDeviceId()</code>, <code>SetReference()</code></td>
 </tr>
 <tr>
 <td>Channels</td>
 <td><code>ConfigureChannel()</code>, <code>ConfigureAllChannels()</code>, <code>GetChannelConfig()</code>, <code>SetChannelOffset()</code>, <code>SetChannelGain()</code></td>
 </tr>
 <tr>
+<td>Calibration</td>
+<td><code>SetSystemCorrection()</code>, <code>RunAdcCalibration()</code>, <code>GetAdcCalMode()</code>, <code>OffsetCorrectionFor()</code>, <code>GainCorrectionFor()</code></td>
+</tr>
+<tr>
 <td>Data interface</td>
-<td><code>SetDataFormat()</code>, <code>GetDataFormat()</code>, <code>SetDigitalInterface()</code>, <code>SetChannelCountMode()</code></td>
+<td><code>SetDataFormat()</code>, <code>GetDataFormat()</code>, <code>SetDigitalInterface()</code>, <code>SetChannelCountMode()</code>, <code>SetOversampling()</code></td>
 </tr>
 <tr>
 <td>Pins and power</td>
@@ -1489,33 +1571,78 @@ the <a href="../porting/">port</a>. The <a href="../api-reference/">API referenc
 Reads return a <code>Snapshot</code> or <code>ReadResult</code> with an <code>error</code> field. Nothing throws or allocates. Channels are
 numbered 0 to 15 in the API (AIN1 to AIN16 on the chip).</p>
 <h2 id="initialise">Initialise<a class="headerlink" href="#initialise" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">EnsureInitialized</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">        </span><span class="c1">// 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadDeviceId</span><span class="p">();</span><span class="w">   </span><span class="c1">// 0x0004 on a healthy ADS9324, 0 when SDOUT is dead</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"ADS9324 init failed, DEVICE_ID = 0x%04X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">// Later calls return at once; EnsureInitialized(true) runs the whole sequence again.</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">EnsureInitialized</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// 30 ms settle, SW reset, GEN_CFG3 = 0x0032, DEVICE_ID, PGA</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">                                </span><span class="c1">// defaults</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadDeviceId</span><span class="p">();</span><span class="w">   </span><span class="c1">// 0x0004 on a healthy ADS9324, 0 when SDOUT is dead</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"ADS9324 init failed, DEVICE_ID = 0x%04X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">// Later calls return at once; EnsureInitialized(true) runs the whole sequence again.</span>
 </span></code></pre></div>
 <p><code>EnsureInitialized()</code> runs the datasheet's 1-lane sequence (<a href="../registers/#initialisation-sequence">Registers and SPI frames</a>)
 and fails when DEVICE_ID is not <code>0x0004</code>. Every read and every snapshot needs it to have succeeded. Define
 <code>CONFIG_ADS9324_SKIP_DEVICE_ID_CHECK</code> to skip the ID check during bench bring-up (<a href="../configuration/">Configuration</a>).</p>
+<h2 id="reset-and-reference">Reset and reference<a class="headerlink" href="#reset-and-reference" title="Permanent link">&para;</a></h2>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// Use the internal 4.096 V reference whatever the REFSEL pin is strapped to.</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetReference</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">ReferenceSource</span><span class="o">::</span><span class="n">Internal</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1">// Pulse the RESET pin (the port has ResetWrite()); fall back to SW_RST otherwise.</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">reset_ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Adc</span><span class="o">::</span><span class="n">HasHardwareReset</span><span class="p">()</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">HardwareReset</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SoftwareReset</span><span class="p">();</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">// Both resets return the reference to RefselPin: select it again.</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">return</span><span class="w"> </span><span class="n">reset_ok</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetReference</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">ReferenceSource</span><span class="o">::</span><span class="n">Internal</span><span class="p">);</span>
+</span></code></pre></div>
+<p><code>SoftwareReset()</code> writes SW_RST; <code>HardwareReset()</code> pulses the RESET pin (low for <code>RESET_PULSE_US</code>, then the 30 ms
+t<sub>PU</sub>) and needs the optional <code>ResetWrite()</code> hook in the <a href="../porting/#optional-reset-pin">port</a>
+(<code>HasHardwareReset()</code> tells you at compile time). Either reset returns every register to its reset value; the
+driver then selects 1-lane SDOUT again and writes the channel defaults, so offsets, gains, the window comparator,
+the channel-count mode, the reference selection, the oversampling filter and the ADC_CAL correction are back at their
+reset values. If that reprogramming fails,
+<code>IsInitialized()</code> turns <code>false</code>.</p>
+<p><code>SetReference()</code> writes ANA_CFG1 (Table 7-3):</p>
+<table>
+<thead>
+<tr>
+<th><code>ReferenceSource</code></th>
+<th>ANA_CFG1</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RefselPin</code> (reset)</td>
+<td><code>0x0000</code></td>
+<td>REFSEL pin: high = internal, low = external on REFIO</td>
+</tr>
+<tr>
+<td><code>Internal</code></td>
+<td><code>0x0002</code></td>
+<td>Internal 4.096 V, REFSEL ignored</td>
+</tr>
+<tr>
+<td><code>External</code></td>
+<td><code>0x0003</code></td>
+<td>External on REFIO, REFSEL ignored; without one the chip powers down</td>
+</tr>
+</tbody>
+</table>
 <h2 id="configure-the-channels">Configure the channels<a class="headerlink" href="#configure-the-channels" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// AIN1..AIN4: ±10 V differential, wide bandwidth for a fast current-sense signal.</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">ads9324</span><span class="o">::</span><span class="n">ChannelConfig</span><span class="w"> </span><span class="n">current</span><span class="p">;</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">current</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputType</span><span class="o">::</span><span class="n">Differential</span><span class="p">;</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">current</span><span class="p">.</span><span class="n">range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputRange</span><span class="o">::</span><span class="n">PlusMinus10V</span><span class="p">;</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">current</span><span class="p">.</span><span class="n">bandwidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">PgaBandwidth</span><span class="o">::</span><span class="n">Wide</span><span class="p">;</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">// AIN5..AIN16: ±2.5 V single-ended sensors that may come unplugged.</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">ads9324</span><span class="o">::</span><span class="n">ChannelConfig</span><span class="w"> </span><span class="n">sensor</span><span class="p">;</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">sensor</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputType</span><span class="o">::</span><span class="n">SingleEndedOpenWireSafe</span><span class="p">;</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">sensor</span><span class="p">.</span><span class="n">range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputRange</span><span class="o">::</span><span class="n">PlusMinus2V5</span><span class="p">;</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kNumChannels</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">ch</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">ConfigureChannel</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">sensor</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">                      </span><span class="c1">// ch out of range, or the bus failed</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="p">}</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// AIN1..AIN4: ±10 V differential, wide bandwidth for a fast current-sense signal.</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">ads9324</span><span class="o">::</span><span class="n">ChannelConfig</span><span class="w"> </span><span class="n">current</span><span class="p">;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">current</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputType</span><span class="o">::</span><span class="n">Differential</span><span class="p">;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">current</span><span class="p">.</span><span class="n">range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputRange</span><span class="o">::</span><span class="n">PlusMinus10V</span><span class="p">;</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">current</span><span class="p">.</span><span class="n">bandwidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">PgaBandwidth</span><span class="o">::</span><span class="n">Wide</span><span class="p">;</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">// AIN5..AIN16: ±2.5 V single-ended sensors that may come unplugged.</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">ads9324</span><span class="o">::</span><span class="n">ChannelConfig</span><span class="w"> </span><span class="n">sensor</span><span class="p">;</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">sensor</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputType</span><span class="o">::</span><span class="n">SingleEndedOpenWireSafe</span><span class="p">;</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">sensor</span><span class="p">.</span><span class="n">range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">InputRange</span><span class="o">::</span><span class="n">PlusMinus2V5</span><span class="p">;</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kNumChannels</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">ch</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">ConfigureChannel</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">sensor</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">                      </span><span class="c1">// ch out of range, or the bus failed</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="p">}</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1550,43 +1677,79 @@ and fails when DEVICE_ID is not <code>0x0004</code>. Every read and every snapsh
 </table>
 <p>Each <code>ConfigureChannel()</code> call is a read-modify-write of two registers (about eight SPI frames). The driver keeps
 the last configuration per channel; <code>GetChannelConfig(ch)</code> returns it, and the voltage conversion uses its range.
-Until you configure a channel, the driver assumes the compile-time default range, which is ±5 V, the chip's reset
-value. <code>EnsureInitialized()</code> does not write the defaults to the chip: if you change them with
-<code>CONFIG_ADS9324_RANGE_*</code> (<a href="../configuration/">Configuration</a>), call <code>ConfigureAllChannels()</code> so the chip and the
-driver agree. <a href="../pga-and-calibration/">PGA and calibration</a> explains the encodings.</p>
+<code>EnsureInitialized()</code> and <code>SoftwareReset()</code> write the compile-time defaults (<code>DefaultChannelConfig()</code>: ±5 V
+differential, low bandwidth unless changed with <code>CONFIG_ADS9324_*</code>, see <a href="../configuration/">Configuration</a>) to all
+16 channels, so the chip and the driver agree from the start. <a href="../pga-and-calibration/">PGA and calibration</a>
+explains the encodings.</p>
 <h2 id="calibrate-offset-and-gain">Calibrate offset and gain<a class="headerlink" href="#calibrate-offset-and-gain" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Offset: 10-bit two's complement in quarter LSBs, added before the gain (Equation 1).</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1">// Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelOffset</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-40</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">// Gain: 14-bit two's complement; the chip multiplies by (1 + GAN / 65536).</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1">// Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. The driver keeps the low 14 bits.</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="k">const</span><span class="w"> </span><span class="kt">int16_t</span><span class="w"> </span><span class="n">gan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-328</span><span class="p">;</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelGain</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">gan</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">}</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// Offset: 10-bit two's complement in quarter LSBs (-512..511), added before the gain (Equation</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1">// 1). Channel 0 reads 10 LSB high with its input shorted: subtract 40 quarter LSBs.</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelOffset</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-40</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">}</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1">// Gain: 14-bit two's complement (-8192..8191); the chip multiplies by (1 + GAN / 65536).</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1">// Channel 0 reads 0.5 % high: GAN = -0.005 * 65536 = -328. Values outside the field return false.</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelGain</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-328</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>The offset is in quarter LSBs (−128 to +127.75 LSB); the gain multiplies by <code>1 + GAN / 65536</code> (about ±12.5 %).
+<p>The offset is in quarter LSBs, −512 to +511 (−128 to +127.75 LSB); the gain is signed, −8192 to +8191, and
+multiplies by <code>1 + GAN / 65536</code> (about ±12.5 %). A value outside its field returns <code>false</code> and writes nothing.
 Measure with the real source impedance connected: the correction is for the whole signal chain.</p>
+<p>To compute the values from two measurements, <code>OffsetCorrectionFor(measured, expected)</code> returns
+<code>4 × (expected − measured)</code> (Equation 1) and <code>GainCorrectionFor(measured, expected)</code> returns
+<code>(expected − measured) / measured × 65536</code>, rounded (Equation 3). Measure the gain point after the offset is
+corrected, with the gain correction at 0:</p>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// AIN1 shorted reads +10 LSB; with 4.5 V applied on the ±5 V range it reads 29000 instead of</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1">// 29491 (4.5 / 5 * 32768). The helpers apply Equations 1 and 3 of the datasheet.</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">const</span><span class="w"> </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">ofs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">OffsetCorrectionFor</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w">           </span><span class="c1">// -40 quarter LSBs</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">const</span><span class="w"> </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">gan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">GainCorrectionFor</span><span class="p">(</span><span class="mi">29000</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">29491</span><span class="p">);</span><span class="w"> </span><span class="c1">// measured after the offset</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ofs</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kOffsetMin</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">ofs</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kOffsetMax</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">gan</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kGainMin</span><span class="w"> </span><span class="o">||</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="n">gan</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kGainMax</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// error too large for the registers</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelOffset</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ofs</span><span class="p">))</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">       </span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelGain</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">gan</span><span class="p">));</span>
+</span></code></pre></div>
+<p><code>SetSystemCorrection(offset, gain)</code> switches the application of all offset or all gain registers on or off
+(<code>OFS_CORR_DIS</code> and <code>GAN_CORR_DIS</code> in the GEN_CFG5 register of both channel banks, sections 7.3.8 and 7.3.9); both are
+on at reset and the register values are kept while off.</p>
+<h3 id="on-chip-adc-calibration">On-chip ADC calibration<a class="headerlink" href="#on-chip-adc-calibration" title="Permanent link">&para;</a></h3>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// On-chip ADC_CAL: the inputs are disconnected for about 125 ms while the chip measures its own</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1">// offset and gain error. Run it after configuring the channels (it reads their input types).</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">RunAdcCalibration</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">AdcCalMode</span><span class="o">::</span><span class="n">OffsetAndGain</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// bus error, or CALIB_BUSY did not clear</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1">// The correction stays applied until a reset or until it is switched off:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">// adc.RunAdcCalibration(ads9324::AdcCalMode::Disabled);</span>
+</span></code></pre></div>
+<p><code>RunAdcCalibration(mode)</code> runs the chip's <code>ADC_CAL</code> module once in single-shot mode (section 7.3.10). It turns the
+digital filters off and sets <code>INT_TRIG_MODE</code>, writes <code>ADC_CAL_MODE</code> and the bank input types (<code>SE_DIFF_MODE_AIN1_8</code>,
+<code>SE_DIFF_MODE_AIN9_16</code>), pulses <code>ADC_CAL_TRIG</code> for 10 µs, gives CONVST one high-low-high pulse, waits
+<code>ADC_CAL_WAIT_MS</code> (125 ms, Table 7-7) and polls <code>CALIB_BUSY_FLAG</code> in DEVICE_STATUS for up to
+<code>ADC_CAL_TIMEOUT_MS</code>. Then CONVST returns low and the oversampling filter is restored. A bank counts as
+differential when all its eight channels are; <code>RunAdcCalibration(mode, ain1_8, ain9_16)</code> sets the two input types
+yourself. <code>AdcCalMode::Disabled</code> removes the correction. A reset sets <code>ADC_CAL</code> back to disabled, so run it again
+after <code>SoftwareReset()</code> or <code>HardwareReset()</code>. Use it when you do not calibrate the system yourself; it reduces the
+offset error from about ±30 LSB to ±8 LSB in the datasheet's example.</p>
 <h2 id="read">Read<a class="headerlink" href="#read" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">snap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span><span class="w">   </span><span class="c1">// all 16 channels, same sampling instant</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">ok</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kNumChannels</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">ch</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">hasChannel</span><span class="p">(</span><span class="n">ch</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"AIN%u: %6d  %.4f V</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1U</span><span class="p">,</span><span class="w"> </span><span class="n">snap</span><span class="p">.</span><span class="n">count</span><span class="p">[</span><span class="n">ch</span><span class="p">],</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">                  </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">voltage</span><span class="p">[</span><span class="n">ch</span><span class="p">]));</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1">// One channel: still one full conversion; the others are discarded.</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">ReadResult</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadChannel</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">ok</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">again</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">CountToVoltage</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">count</span><span class="p">);</span><span class="w">  </span><span class="c1">// same value as r.voltage</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">again</span><span class="p">;</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="p">}</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">snap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span><span class="w">   </span><span class="c1">// all 16 channels, same sampling instant</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">ok</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">kNumChannels</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">ch</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">hasChannel</span><span class="p">(</span><span class="n">ch</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"AIN%u: %6d  %.4f V</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1U</span><span class="p">,</span><span class="w"> </span><span class="n">snap</span><span class="p">.</span><span class="n">count</span><span class="p">[</span><span class="n">ch</span><span class="p">],</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">                  </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">voltage</span><span class="p">[</span><span class="n">ch</span><span class="p">]));</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">}</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1">// One channel: still one full conversion; the others are discarded.</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">ReadResult</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadChannel</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">ok</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">again</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">CountToVoltage</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">count</span><span class="p">);</span><span class="w">  </span><span class="c1">// same value as r.voltage</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">  </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">again</span><span class="p">;</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><code>ReadSnapshot()</code> is one CONVST edge: all channels are sampled at the same instant. <code>valid_mask</code> has a bit for each
 channel clocked out, and <code>hasChannel(ch)</code> tests it. <code>ReadChannel()</code> runs a full snapshot and keeps one channel;
@@ -1594,12 +1757,12 @@ call <code>ReadSnapshot()</code> once when you need more than one.</p>
 <p>The SPI burst is 32 bytes at the default 16-bit word length. At the examples' 8 MHz clock that is 32 µs on the bus;
 see <a href="../hardware/#throughput-in-1-lane-mode">Hardware</a> for the rate this allows.</p>
 <h2 id="change-the-data-format-and-word-length">Change the data format and word length<a class="headerlink" href="#change-the-data-format-and-word-length" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// Offset-binary coding on the wire; the driver still returns two's-complement counts.</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetDataFormat</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">DataFormat</span><span class="o">::</span><span class="n">OffsetBinary</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">// 24-bit words on SDOUT (48-byte bursts); the driver uses the top 16 bits as the code.</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetDigitalInterface</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">DoutLaneMode</span><span class="o">::</span><span class="n">Lane1</span><span class="p">,</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">DoutLength</span><span class="o">::</span><span class="n">Bits24</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">// Offset-binary coding on the wire; the driver still returns two's-complement counts.</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetDataFormat</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">DataFormat</span><span class="o">::</span><span class="n">OffsetBinary</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">}</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1">// 24-bit words on SDOUT (48-byte bursts); the driver uses the top 16 bits as the code.</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetDigitalInterface</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">DoutLaneMode</span><span class="o">::</span><span class="n">Lane1</span><span class="p">,</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">DoutLength</span><span class="o">::</span><span class="n">Bits24</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 </span></code></pre></div>
 <p>Both calls rewrite GEN_CFG3. <code>Snapshot::count</code> stays two's complement whatever the wire format. Keep
 <code>DoutLaneMode::Lane1</code> with data on SDOUT: <code>ReadSnapshot()</code> reads SDOUT only, so another lane setting stops the data
@@ -1607,22 +1770,139 @@ from reaching it.</p>
 <h2 id="read-fewer-channels">Read fewer channels<a class="headerlink" href="#read-fewer-channels" title="Permanent link">&para;</a></h2>
 <p><code>SetChannelCountMode(mode, ch_sel)</code> writes ANA_CFG2 so the chip converts and outputs 8, 4 or 2 channels, which
 shortens the burst.</p>
-<div class="admonition warning">
-<p class="admonition-title">Channel numbers in reduced modes</p>
-<p>The chip outputs a fixed set of channels in these modes, taken from both ends (Table 7-12): with
-<code>ChannelCountMode::Eight</code> and <code>ch_sel</code> 0 it sends AIN1 to AIN4 and AIN13 to AIN16. <code>ReadSnapshot()</code> stores
-the <em>n</em>th word of the burst as channel <em>n</em>, so <code>count[4]</code> then holds AIN13, not AIN5, and the voltage uses
-channel 4's range. Use <code>ChannelCountMode::All16</code> (the default) unless you map the channels yourself.</p>
-</div>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// Eight channels, group 0: the chip sends AIN1..AIN4 and AIN13..AIN16 (Table 7-12).</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">adc</span><span class="p">.</span><span class="n">SetChannelCountMode</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">ChannelCountMode</span><span class="o">::</span><span class="n">Eight</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">snap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span><span class="w"> </span><span class="c1">// 16-byte burst</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">ok</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">snap</span><span class="p">.</span><span class="n">hasChannel</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">            </span><span class="c1">// valid_mask = 0xF00F</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"AIN13: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">snap</span><span class="p">.</span><span class="n">count</span><span class="p">[</span><span class="mi">12</span><span class="p">]);</span><span class="w">      </span><span class="c1">// stored under its own channel</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>The chip outputs a fixed set of channels in these modes, taken from both ends of the device, lowest channel first
+(Table 7-12). <code>ch_sel</code> is the <code>ADC_CH_SEL</code> field; only its top bits pick the group:</p>
+<table>
+<thead>
+<tr>
+<th><code>ChannelCountMode</code></th>
+<th><code>ch_sel</code></th>
+<th>Channels in the burst</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>All16</code> (default)</td>
+<td>any</td>
+<td>AIN1 to AIN16</td>
+</tr>
+<tr>
+<td><code>Eight</code></td>
+<td><code>0b0xx</code> / <code>0b1xx</code></td>
+<td>AIN1 to AIN4 and AIN13 to AIN16 / AIN5 to AIN12</td>
+</tr>
+<tr>
+<td><code>Four</code></td>
+<td><code>0b00x</code>, <code>0b01x</code>, <code>0b10x</code>, <code>0b11x</code></td>
+<td>AIN1, 2, 15, 16 / AIN3, 4, 13, 14 / AIN5, 6, 11, 12 / AIN7 to AIN10</td>
+</tr>
+<tr>
+<td><code>Two</code></td>
+<td><code>0b000</code> to <code>0b111</code></td>
+<td>AIN1 and AIN16, AIN2 and AIN15, ... AIN8 and AIN9</td>
+</tr>
+</tbody>
+</table>
+<p><code>ReadSnapshot()</code> stores each word under its real channel, so <code>count[12]</code> is AIN13 in every mode, and sets only
+those channels in <code>valid_mask</code>. <code>reg::FrameChannel(mode, ch_sel, word)</code> and <code>reg::FrameChannelMask(mode, ch_sel)</code>
+give the same mapping. <code>ReadChannel()</code> for a channel the chip does not send returns <code>Error::SpiError</code>.</p>
+<h2 id="average-with-oversampling">Average with oversampling<a class="headerlink" href="#average-with-oversampling" title="Permanent link">&para;</a></h2>
+<p><code>SetOversampling(osr, clock)</code> turns on the chip's block-average filter (section 7.3.11.2): each snapshot returns
+the mean of <em>N</em> conversions per channel.</p>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">// Average 16 conversions per snapshot: +6.5 dB SNR on the ±5 V range, 62.5 kSPS at most (Table</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1">// 7-8). The internal clock runs the 16 conversions from one CONVST edge.</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetOversampling</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">OversamplingRatio</span><span class="o">::</span><span class="n">X16</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">avg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span><span class="w"> </span><span class="c1">// averaged codes, same layout as before</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">avg</span><span class="p">;</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1">// External clock: the driver pulses CONVST 16 times, at regular intervals (best antialiasing).</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetOversampling</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">OversamplingRatio</span><span class="o">::</span><span class="n">X16</span><span class="p">,</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">OversamplingClock</span><span class="o">::</span><span class="n">External</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="p">}</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetOversampling</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">OversamplingRatio</span><span class="o">::</span><span class="n">None</span><span class="p">);</span><span class="w"> </span><span class="c1">// back to one conversion</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th><code>OversamplingRatio</code></th>
+<th>DIG_FILTER <code>BLK_AVG_OSR</code></th>
+<th>SNR, ±5 V (Table 7-8)</th>
+<th>Highest output rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>None</code> (reset)</td>
+<td><code>0000b</code></td>
+<td>87.5 dB</td>
+<td>1 MSPS</td>
+</tr>
+<tr>
+<td><code>X2</code>, <code>X4</code>, <code>X8</code></td>
+<td><code>0001b</code>, <code>0010b</code>, <code>0100b</code></td>
+<td>89.5, 91.2, 92.7 dB</td>
+<td>500, 250, 125 kSPS</td>
+</tr>
+<tr>
+<td><code>X16</code>, <code>X32</code></td>
+<td><code>0111b</code>, <code>1001b</code></td>
+<td>94.0, 96.7 dB</td>
+<td>62.5, 31.25 kSPS</td>
+</tr>
+<tr>
+<td><code>X64</code>, <code>X128</code></td>
+<td><code>1010b</code>, <code>1011b</code></td>
+<td>99.1, 101.6 dB</td>
+<td>15.6, 7.8 kSPS</td>
+</tr>
+</tbody>
+</table>
+<p><code>X6</code>, <code>X10</code>, <code>X12</code> and <code>X20</code> are also valid codes (Table 8-17); <code>OversamplingSamples(osr)</code> returns <em>N</em>.</p>
+<table>
+<thead>
+<tr>
+<th><code>OversamplingClock</code></th>
+<th>DIG_FILTER <code>INT_TRIG_MODE</code></th>
+<th>Conversions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Internal</code> (default)</td>
+<td>1</td>
+<td>One CONVST edge; the chip runs the other <em>N</em> − 1 itself (Figure 7-17)</td>
+</tr>
+<tr>
+<td><code>External</code></td>
+<td>0</td>
+<td><code>ReadSnapshot()</code> pulses CONVST <em>N</em> times, 2 µs apart (Figure 7-16)</td>
+</tr>
+</tbody>
+</table>
+<p>The first enabling call writes GEN_CFG5 <code>AVG_MODE_OVR_EN</code>, then <code>AVG_MODE</code>, as section 7.3.11.2 requires; every
+enabling call then writes DIG_FILTER and pulses <code>DIG_FILT_SYSREF</code> 0 → 1 → 0, high for 2 µs (more than one t<sub>CONVST</sub>,
+Figure 7-14), to clear the accumulator. With the
+internal clock the DRDY timeout and the <code>CONV_FALLBACK_US</code> wait are multiplied by <em>N</em>. A reset returns the filter
+to <code>None</code> and <code>GetOversampling()</code> follows. A reserved code returns <code>false</code>.</p>
 <h2 id="window-comparator-and-alarm-pin">Window comparator and alarm pin<a class="headerlink" href="#window-comparator-and-alarm-pin" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Window comparator on AIN1. Thresholds are compared with the top 8 bits of the code, so one</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1">// step is 256 LSB: +64 is +FS/2, -16 is -FS/8. Alert while AIN1 is outside that window.</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">ProgramWindowComparator</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span><span class="w"> </span><span class="mi">-16</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1">// Route the comparator to the DRDY/ALARM pin. DRDY polling then no longer works:</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">// give the port HasDrdy() == false, or switch back with SetAlarmPin(AlarmPinMode::Drdy).</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetAlarmPin</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">AlarmPinMode</span><span class="o">::</span><span class="n">DwcAlert</span><span class="p">);</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// Window comparator on AIN1. Thresholds are compared with the top 8 bits of the code, so one</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1">// step is 256 LSB: +64 is +FS/2, -16 is -FS/8. Alert while AIN1 is outside that window.</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">ProgramWindowComparator</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span><span class="w"> </span><span class="mi">-16</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">}</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1">// Route the comparator to the DRDY/ALARM pin. DRDY polling then no longer works:</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1">// give the port HasDrdy() == false, or switch back with SetAlarmPin(AlarmPinMode::Drdy).</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetAlarmPin</span><span class="p">(</span><span class="n">ads9324</span><span class="o">::</span><span class="n">AlarmPinMode</span><span class="o">::</span><span class="n">DwcAlert</span><span class="p">);</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1653,32 +1933,32 @@ channel 4's range. Use <code>ChannelCountMode::All16</code> (the default) unless
 <p><code>SetAlarmPin(mode, true)</code> inverts the pin's polarity. With the pin inverted or muxed away from <code>Drdy</code>, the driver's
 DRDY poll reads the wrong signal: give the port <code>HasDrdy() == false</code> for that time.</p>
 <h2 id="power-down">Power down<a class="headerlink" href="#power-down" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetPowerDown</span><span class="p">(</span><span class="nb">true</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">         </span><span class="c1">// standby: AFE and reference off, about 6.5 mW</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">}</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1">// ... later</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetPowerDown</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">        </span><span class="c1">// the reference needs time to settle before accurate samples</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">adc</span><span class="p">.</span><span class="n">SetPowerDown</span><span class="p">(</span><span class="nb">true</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">         </span><span class="c1">// standby: AFE and reference off, about 6.5 mW</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">}</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1">// ... later</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">return</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">SetPowerDown</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">        </span><span class="c1">// the reference needs time to settle before accurate samples</span>
 </span></code></pre></div>
 <p>Standby powers down the analog front ends and the internal reference. The registers keep their values. The
 reference takes up to 30 ms to settle again (with 1 µF on REFCAP).</p>
 <h2 id="handle-errors">Handle errors<a class="headerlink" href="#handle-errors" title="Permanent link">&para;</a></h2>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">snap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">Ok</span><span class="p">:</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">NotInitialized</span><span class="p">:</span><span class="w">   </span><span class="c1">// EnsureInitialized() never succeeded</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="n">adc</span><span class="p">.</span><span class="n">EnsureInitialized</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">Timeout</span><span class="p">:</span><span class="w">          </span><span class="c1">// DRDY stayed low for DRDY_TIMEOUT_US</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"no DRDY: check CONVST and the DRDY/ALARM mux</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">default</span><span class="o">:</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="p">}</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Diagnostics</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">GetDiagnostics</span><span class="p">();</span><span class="w">   </span><span class="c1">// software counters, no SPI traffic</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"snapshots %lu, errors %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">snapshots</span><span class="p">),</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">            </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">errors</span><span class="p">));</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Snapshot</span><span class="w"> </span><span class="n">snap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">ReadSnapshot</span><span class="p">();</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">snap</span><span class="p">.</span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">Ok</span><span class="p">:</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">NotInitialized</span><span class="p">:</span><span class="w">   </span><span class="c1">// EnsureInitialized() never succeeded</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="n">adc</span><span class="p">.</span><span class="n">EnsureInitialized</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="k">case</span><span class="w"> </span><span class="no">ads9324</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">Timeout</span><span class="p">:</span><span class="w">          </span><span class="c1">// DRDY stayed low for DRDY_TIMEOUT_US</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"no DRDY: check CONVST and the DRDY/ALARM mux</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">default</span><span class="o">:</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="p">}</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="k">const</span><span class="w"> </span><span class="n">ads9324</span><span class="o">::</span><span class="n">Diagnostics</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">GetDiagnostics</span><span class="p">();</span><span class="w">   </span><span class="c1">// software counters, no SPI traffic</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">"snapshots %lu, errors %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">snapshots</span><span class="p">),</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">            </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">errors</span><span class="p">));</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1711,23 +1991,23 @@ reference takes up to 30 ms to settle again (with 1 µF on REFCAP).</p>
 </tr>
 <tr>
 <td><code>Error::SpiError</code></td>
-<td>The requested channel was not in the burst</td>
-<td>A reduced channel-count mode is active</td>
+<td>The port's <code>transfer()</code> returned <code>false</code>, or the requested channel was not in the burst</td>
+<td>Check the bus; with a reduced channel-count mode, read a channel the chip sends (<a href="#read-fewer-channels">table</a>)</td>
 </tr>
 <tr>
 <td>A configuration call returns <code>false</code></td>
-<td>Channel above 15</td>
-<td>Use 0 to 15</td>
+<td>Channel above 15, a value outside its register field, or the port's <code>transfer()</code> returned <code>false</code></td>
+<td>Use 0 to 15 and the documented ranges; check the bus</td>
 </tr>
 </tbody>
 </table>
 <p><code>GetDiagnostics()</code> returns the software counters (<code>snapshots</code>, <code>errors</code>) and the cached interface settings without
 touching the bus.</p>
 <div class="admonition note">
-<p class="admonition-title">Bus errors are not detected</p>
-<p><code>SpiInterface::transfer()</code> returns nothing, so the driver cannot see a failed SPI transaction: it reads
-whatever arrived. DEVICE_ID at start-up is the only end-to-end check. If your SDK reports transfer errors,
-count them in your port.</p>
+<p class="admonition-title">Bus errors</p>
+<p>The port's <code>transfer()</code> returns <code>false</code> on a bus error (<a href="../porting/#rules-for-the-transfer">Porting</a>); the
+driver stops the call that sent the frame and leaves its cached settings unchanged. A failed transfer is
+the only error the bus can report: a wiring fault that still clocks bytes shows up as a wrong DEVICE_ID.</p>
 </div>
 <p><a href="../troubleshooting/">Troubleshooting</a> maps symptoms to causes.</p>
 

@@ -1363,8 +1363,8 @@
 <h1 id="registers-and-spi-frames">Registers and SPI frames<a class="headerlink" href="#registers-and-spi-frames" title="Permanent link">&para;</a></h1>
 <p>What the driver sends over SPI: the 24-bit register frame, the three register banks, the two-frame read and the
 conversion burst.</p>
-<p>Section and table numbers refer to the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22). The addresses are
-constants in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_registers.hpp"><code>inc/ads9324_registers.hpp</code></a> (namespace <code>ads9324::reg</code>).</p>
+<p>Section and table numbers refer to the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22). The addresses are
+constants in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_registers.hpp"><code>inc/ads9324_registers.hpp</code></a> (namespace <code>ads9324::reg</code>).</p>
 <h2 id="the-register-frame">The register frame<a class="headerlink" href="#the-register-frame" title="Permanent link">&para;</a></h2>
 <p>Every register access is one 24-bit frame, MSB first, CS low for all 24 clocks:</p>
 <table>
@@ -1483,9 +1483,34 @@ changes.</p>
 <td><code>ALRM_POL</code> (4), <code>DRDY_ALRM_SEL</code> (3:0) in <code>SetAlarmPin()</code></td>
 </tr>
 <tr>
+<td><code>0x10</code></td>
+<td><code>ANA_CFG1</code></td>
+<td><code>REFSEL_CTRL_DIS</code> (1), <code>EXT_REF_EN</code> (0) in <code>SetReference()</code></td>
+</tr>
+<tr>
 <td><code>0x11</code></td>
 <td><code>ANA_CFG2</code></td>
 <td><code>ADC_CH_SEL</code> (6:4), <code>ADC_NUM_SEL</code> (3:2) in <code>SetChannelCountMode()</code></td>
+</tr>
+<tr>
+<td><code>0x12</code></td>
+<td><code>ADC_CAL</code></td>
+<td><code>SE_DIFF_MODE_AIN1_8</code> (13), <code>SE_DIFF_MODE_AIN9_16</code> (12), <code>ADC_CAL_TRIG</code> (8), <code>ADC_CAL_MODE</code> (1:0) in <code>RunAdcCalibration()</code></td>
+</tr>
+<tr>
+<td><code>0x14</code></td>
+<td><code>DIG_FILTER</code></td>
+<td><code>BLK_AVG_OSR</code> (7:4), <code>INT_TRIG_MODE</code> (1), <code>DIG_FILT_SYSREF</code> (0) in <code>SetOversampling()</code></td>
+</tr>
+<tr>
+<td><code>0x15</code></td>
+<td><code>GEN_CFG5</code></td>
+<td><code>AVG_MODE_OVR_EN</code> (1), then <code>AVG_MODE</code> (0), before the first <code>SetOversampling()</code></td>
+</tr>
+<tr>
+<td><code>0x1D</code></td>
+<td><code>DEVICE_STATUS</code></td>
+<td><code>CALIB_BUSY_FLAG</code> (3) polled by <code>RunAdcCalibration()</code></td>
 </tr>
 <tr>
 <td><code>0x21</code></td>
@@ -1536,14 +1561,19 @@ changes.</p>
 <td><code>DWC_TH_AINn</code></td>
 <td>High threshold (15:8), low threshold (7:0)</td>
 </tr>
+<tr>
+<td><code>0x37</code></td>
+<td><code>GEN_CFG5</code></td>
+<td><code>OFS_CORR_DIS</code> (1), <code>GAN_CORR_DIS</code> (0) in <code>SetSystemCorrection()</code></td>
+</tr>
 </tbody>
 </table>
 </div>
-<p>The other registers (reference select, oversampling filters, phase delay, ADC self-calibration, test patterns)
+<p>The other registers (FIR and moving-average filters, phase delay, test patterns)
 have addresses in <code>ads9324_registers.hpp</code> but no driver call. <a href="../pga-and-calibration/">PGA and calibration</a>
 explains the channel registers.</p>
 <h2 id="initialisation-sequence">Initialisation sequence<a class="headerlink" href="#initialisation-sequence" title="Permanent link">&para;</a></h2>
-<p><code>EnsureInitialized()</code> follows Table 7-18, then checks the ID:</p>
+<p><code>EnsureInitialized()</code> follows Table 7-18, checks the ID, then writes the channel defaults:</p>
 <table>
 <thead>
 <tr>
@@ -1560,8 +1590,8 @@ explains the channel registers.</p>
 </tr>
 <tr>
 <td>2</td>
-<td><code>GEN_CFG1</code> = <code>0x0002</code></td>
-<td>Software reset</td>
+<td><code>BANK_SEL</code> = <code>0x0001</code>, <code>GEN_CFG1</code> = <code>0x0002</code></td>
+<td>Software reset; the bank is selected first because GEN_CFG1 is in the common bank and the chip may have kept another bank across an MCU reset</td>
 </tr>
 <tr>
 <td>3</td>
@@ -1582,6 +1612,11 @@ explains the channel registers.</p>
 <td>6</td>
 <td>Read <code>DEVICE_ID</code>, expect <code>0x0004</code></td>
 <td>Proves SDI, SDOUT, SCLK and CS work</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>PGA_CONFIG_AINx_y</code> and <code>PGA_BW_SEL</code> of both channel banks</td>
+<td>The <code>CONFIG_ADS9324_*</code> range, input type and bandwidth defaults (<a href="../configuration/">Configuration</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -1611,6 +1646,9 @@ first, lowest channel first (Figure 5-5):</p>
 </tr>
 </tbody>
 </table>
+<p>With <code>ADC_NUM_SEL</code> set to 8, 4 or 2 channels the burst is shorter and carries the Table 7-12 channel set, for
+example AIN1 to AIN4 then AIN13 to AIN16; the driver stores each word under its channel
+(<a href="../api-guide/#read-fewer-channels">API guide</a>).</p>
 <p>With the default two's-complement coding, 0 V is <code>0x0000</code>, the most positive code is <code>0x7FFF</code> and −FS is <code>0x8000</code>. In
 offset-binary coding midscale is <code>0x8000</code>; the driver converts it to two's complement, so <code>Snapshot::count</code> is
 always signed.</p>

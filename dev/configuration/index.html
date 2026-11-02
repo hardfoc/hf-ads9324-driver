@@ -1298,7 +1298,7 @@
 <p>The compile-time defaults of the driver: what each <code>CONFIG_ADS9324_*</code> macro changes and how to set it.</p>
 <p>Run-time settings (range, input type, bandwidth, offset, gain, data format) are method calls; the
 <a href="../api-guide/">API guide</a> covers them. The macros below only change the values the driver starts with. They are
-read in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_config.hpp"><code>inc/ads9324_config.hpp</code></a> into the <code>ADS9324_CFG</code> namespace.</p>
+read in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_config.hpp"><code>inc/ads9324_config.hpp</code></a> into the <code>ADS9324_CFG</code> namespace.</p>
 <h2 id="defaults">Defaults<a class="headerlink" href="#defaults" title="Permanent link">&para;</a></h2>
 <p>Each macro below is <code>CONFIG_ADS9324_</code> followed by the name in the first column.</p>
 <table>
@@ -1310,16 +1310,16 @@ read in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb1
 </thead>
 <tbody>
 <tr>
-<td><code>RANGE_12V5</code>, <code>RANGE_10V</code>, <code>RANGE_2V5</code></td>
-<td>Range in the driver's channel cache, <code>DEFAULT_RANGE</code>; ±5 V</td>
+<td><code>RANGE_12V5</code>, <code>RANGE_10V</code>, <code>RANGE_6V25</code>, <code>RANGE_2V5</code></td>
+<td>Range written to every channel at initialisation, <code>DEFAULT_RANGE</code>; ±5 V</td>
 </tr>
 <tr>
 <td><code>SINGLE_ENDED</code></td>
-<td>Input type in the cache, <code>DEFAULT_INPUT_TYPE</code>; differential</td>
+<td>Input type written to every channel, <code>DEFAULT_INPUT_TYPE</code>; differential</td>
 </tr>
 <tr>
 <td><code>PGA_WIDE</code></td>
-<td>Filter in the cache, <code>DEFAULT_BANDWIDTH</code>; low bandwidth</td>
+<td>Filter written to every channel, <code>DEFAULT_BANDWIDTH</code>; low bandwidth</td>
 </tr>
 <tr>
 <td><code>OFFSET_BINARY</code></td>
@@ -1338,18 +1338,31 @@ read in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb1
 <td>Wait after the software reset, in ms; 1</td>
 </tr>
 <tr>
+<td><code>RESET_PULSE_US</code></td>
+<td>How long <code>HardwareReset()</code> holds RESET low, in µs; 10 (the datasheet gives no minimum)</td>
+</tr>
+<tr>
 <td><code>DRDY_TIMEOUT_US</code></td>
-<td>DRDY poll budget after CONVST, in 1 µs steps; 1000</td>
+<td>DRDY poll budget after CONVST, in 1 µs steps, times <em>N</em> with internal-clock oversampling; 1000</td>
+</tr>
+<tr>
+<td><code>ADC_CAL_WAIT_MS</code></td>
+<td>Wait after triggering <code>RunAdcCalibration()</code> before checking CALIB_BUSY, in ms; 125 (T<sub>WAIT</sub>, Table 7-7)</td>
+</tr>
+<tr>
+<td><code>ADC_CAL_TIMEOUT_MS</code></td>
+<td>Further CALIB_BUSY poll budget, in 1 ms steps; 125</td>
 </tr>
 <tr>
 <td><code>CONV_FALLBACK_US</code></td>
-<td>Wait after CONVST when <code>HasDrdy()</code> is <code>false</code>, in µs; 10</td>
+<td>Wait after CONVST when <code>HasDrdy()</code> is <code>false</code>, in µs, times <em>N</em> with internal-clock oversampling; 10</td>
 </tr>
 </tbody>
 </table>
-<p>The range, input type and bandwidth defaults only seed the driver's cache: <code>EnsureInitialized()</code> does not write
-them to the chip, whose reset state is ±5 V differential, low bandwidth. Call <code>ConfigureAllChannels()</code> after
-initialisation when you change them, so the chip matches.</p>
+<p><code>EnsureInitialized()</code> and <code>SoftwareReset()</code> write the range, input type and bandwidth defaults to all 16 channels
+(the PGA_CONFIG and PGA_BW_SEL registers of both channel banks) and to the driver's cache, so the chip and the
+voltage conversion agree without a <code>ConfigureAllChannels()</code> call. <code>ADS9324&lt;...&gt;::DefaultChannelConfig()</code> returns
+the resulting <code>ChannelConfig</code>.</p>
 <p>Do not lower <code>POWER_ON_DELAY_MS</code> below 30 unless your REFCAP capacitor is smaller than the datasheet's 1 µF, and
 keep <code>CONV_FALLBACK_US</code> above the conversion time (1.25 µs without oversampling).</p>
 <h2 id="set-them">Set them<a class="headerlink" href="#set-them" title="Permanent link">&para;</a></h2>

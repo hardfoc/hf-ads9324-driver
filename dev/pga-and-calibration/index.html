@@ -1363,7 +1363,7 @@
 <h1 id="pga-and-calibration">PGA and calibration<a class="headerlink" href="#pga-and-calibration" title="Permanent link">&para;</a></h1>
 <p>What each channel's analog front end can be set to, how the driver encodes it, and how to use the offset and gain
 correction registers.</p>
-<p>Table and equation numbers refer to the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22).</p>
+<p>Table and equation numbers refer to the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22).</p>
 <h2 id="input-type-and-range">Input type and range<a class="headerlink" href="#input-type-and-range" title="Permanent link">&para;</a></h2>
 <p>Each channel has its own PGA. <code>ChannelConfig::type</code> and <code>ChannelConfig::range</code> select it (Table 7-1):</p>
 <table>
@@ -1545,39 +1545,93 @@ quarter LSBs, before the gain (Equation 1):</p>
 </tr>
 </tbody>
 </table>
-<p>To remove an offset of <em>e</em> LSB measured with the input shorted, write −4 × <em>e</em>. The range is −128 to +127.75 LSB.</p>
+<p>To remove an offset of <em>e</em> LSB measured with the input shorted, write −4 × <em>e</em>. The range is −128 to +127.75 LSB:
+<code>ofs</code> must be between <code>kOffsetMin</code> (−512) and <code>kOffsetMax</code> (+511), otherwise the call returns <code>false</code> and writes
+nothing.</p>
 <h2 id="gain-correction">Gain correction<a class="headerlink" href="#gain-correction" title="Permanent link">&para;</a></h2>
-<p><code>SetChannelGain(channel, gan)</code> writes the 14-bit two's-complement <code>GAN_AINn</code> register. The chip multiplies the
-offset-corrected code by <code>1 + GAN / 65536</code> (register description of <code>GAN_AINn</code>, Equation 2):</p>
+<p><code>SetChannelGain(channel, gan)</code> writes the 14-bit two's-complement <code>GAN_AINn</code> register; <code>gan</code> is a signed
+<code>int16_t</code>. The chip multiplies the offset-corrected code by <code>1 + GAN / 65536</code> (register description of
+<code>GAN_AINn</code>, Equation 2):</p>
 <table>
 <thead>
 <tr>
-<th><code>GAN</code></th>
+<th><code>gan</code></th>
+<th><code>GAN</code> (register)</th>
 <th>Multiplier</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>0</td>
 <td><code>0x0000</code></td>
 <td>1.000000 (reset value)</td>
 </tr>
 <tr>
-<td><code>0x1FFF</code> (+8191)</td>
+<td>+3277</td>
+<td><code>0x0CCD</code></td>
+<td>1.050003</td>
+</tr>
+<tr>
+<td>−3277</td>
+<td><code>0x3333</code></td>
+<td>0.949997</td>
+</tr>
+<tr>
+<td>+8191 (<code>kGainMax</code>)</td>
+<td><code>0x1FFF</code></td>
 <td>1.124985</td>
 </tr>
 <tr>
-<td><code>0x2000</code> (−8192)</td>
+<td>−8192 (<code>kGainMin</code>)</td>
+<td><code>0x2000</code></td>
 <td>0.875000</td>
 </tr>
 </tbody>
 </table>
 <p>The range is about ±12.5 %. For a channel that reads a factor <em>k</em> too high, write <code>GAN = −(k − 1) / k × 65536</code>,
-close to <code>−(k − 1) × 65536</code> for small errors. <code>gan</code> is a <code>uint16_t</code>: pass a negative value cast to <code>uint16_t</code>; the
-driver keeps the low 14 bits. The <a href="../api-guide/#calibrate-offset-and-gain">API guide</a> shows both calls.</p>
+close to <code>−(k − 1) × 65536</code> for small errors. A value outside −8192 to +8191 makes the call return <code>false</code> and
+write nothing; pass the signed value, not the register pattern (−3277, not <code>0x3333</code>). The
+<a href="../api-guide/#calibrate-offset-and-gain">API guide</a> shows both calls.</p>
 <h2 id="on-chip-calibration">On-chip calibration<a class="headerlink" href="#on-chip-calibration" title="Permanent link">&para;</a></h2>
 <p>The ADS9324 can also measure and correct its own offset and gain (<code>ADC_CAL</code>, section 7.3.10), reducing the offset
-error from about ±30 LSB to ±8 LSB in the datasheet's example. The driver does not run it; the register address is
-<code>reg::ADC_CAL</code> if you write the sequence yourself.</p>
+error from about ±30 LSB to ±8 LSB in the datasheet's example. <code>RunAdcCalibration()</code> runs it once in single-shot
+mode: the inputs are disconnected for T<sub>WAIT</sub> = 125 ms (Table 7-7) and the correction stays applied
+until a reset or <code>RunAdcCalibration(AdcCalMode::Disabled)</code>. It is meant for systems that do not calibrate offset
+and gain themselves; with the system corrections above it is not needed. The
+<a href="../api-guide/#on-chip-adc-calibration">API guide</a> has the sequence.</p>
+<table>
+<thead>
+<tr>
+<th><code>AdcCalMode</code></th>
+<th><code>ADC_CAL_MODE</code></th>
+<th>Calibrates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Disabled</code> (reset)</td>
+<td><code>00b</code></td>
+<td>Nothing; no ADC_CAL correction applied</td>
+</tr>
+<tr>
+<td><code>Offset</code></td>
+<td><code>01b</code></td>
+<td>Offset error</td>
+</tr>
+<tr>
+<td><code>Gain</code></td>
+<td><code>10b</code></td>
+<td>Gain error</td>
+</tr>
+<tr>
+<td><code>OffsetAndGain</code></td>
+<td><code>11b</code></td>
+<td>Both</td>
+</tr>
+</tbody>
+</table>
+<p><code>SetSystemCorrection(offset, gain)</code> switches the <code>OFS_AINn</code> and <code>GAN_AINn</code> corrections of all channels on or off
+(<code>OFS_CORR_DIS</code>, <code>GAN_CORR_DIS</code> in each bank's GEN_CFG5, Tables 8-70 and 8-121).</p>
 
 
 

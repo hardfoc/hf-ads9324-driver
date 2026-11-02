@@ -1368,9 +1368,9 @@ remaining problem is in CONVST, DRDY or the channel settings.</p>
 <td>Call <code>EnsureInitialized()</code> after every power cycle or hardware reset; do not change <code>SetDigitalInterface()</code> away from 1 lane on SDOUT</td>
 </tr>
 <tr>
-<td>Channels look shifted</td>
-<td>A reduced <code>SetChannelCountMode()</code> is active; the chip sends a fixed channel set</td>
-<td>Use <code>ChannelCountMode::All16</code> (<a href="../api-guide/#read-fewer-channels">API guide</a>)</td>
+<td>A channel reads 0 and <code>hasChannel()</code> is <code>false</code></td>
+<td>A reduced <code>SetChannelCountMode()</code> is active and the chip does not send that channel</td>
+<td>Pick the group that contains it, or <code>ChannelCountMode::All16</code> (<a href="../api-guide/#read-fewer-channels">API guide</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -1386,8 +1386,8 @@ remaining problem is in CONVST, DRDY or the channel settings.</p>
 <tbody>
 <tr>
 <td>Voltage off by a fixed factor (2, 2.5, 4 ...)</td>
-<td>The driver's range for that channel is not the one the chip uses</td>
-<td>Configure the channel with <code>ConfigureChannel()</code>; with a changed <code>CONFIG_ADS9324_RANGE_*</code> default, call <code>ConfigureAllChannels()</code></td>
+<td>The range you configured is not the one your signal needs, or the chip was reset (RESET pin, power) without <code>EnsureInitialized()</code></td>
+<td>Configure the channel with <code>ConfigureChannel()</code>; call <code>EnsureInitialized(true)</code> after a reset the driver did not do</td>
 </tr>
 <tr>
 <td>Large offset on a single-ended input</td>

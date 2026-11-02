@@ -1297,8 +1297,8 @@
 <h1 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h1>
 <p>ESP32-C6 applications that exercise the driver on real hardware: an integration test suite and two small programs.</p>
 <p>They run on an ESP32-C6 DevKit wired to an ADS9324 board; the pins are in
-<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/esp32_ads9324_test_config.hpp"><code>esp32_ads9324_test_config.hpp</code></a> and the port in
-<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/esp32_ads9324_bus.hpp"><code>esp32_ads9324_bus.hpp</code></a>. CI builds every app marked "yes" below on
+<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/esp32_ads9324_test_config.hpp"><code>esp32_ads9324_test_config.hpp</code></a> and the port in
+<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/esp32_ads9324_bus.hpp"><code>esp32_ads9324_bus.hpp</code></a>. CI builds every app marked "yes" below on
 each pull request.</p>
 <h2 id="the-apps">The apps<a class="headerlink" href="#the-apps" title="Permanent link">&para;</a></h2>
 <!-- generated: examples -->
@@ -1314,21 +1314,21 @@ each pull request.</p>
 <tbody>
 <tr>
 <td><code>driver_integration_test</code> <span class="twemoji" title="featured"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.45 4.73L5.82 21z"/></svg></span></td>
-<td>Integration test suite: DEVICE_ID, PGA, snapshots, calibration registers and power-down, with a pass / fail summary</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/driver_integration_test.cpp"><code>driver_integration_test.cpp</code></a></td>
+<td>Integration test suite: DEVICE_ID, PGA, snapshots, oversampling, offset / gain registers, ADC_CAL and power-down, with a pass / fail summary</td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/driver_integration_test.cpp"><code>driver_integration_test.cpp</code></a></td>
 <td>yes</td>
 </tr>
 <tr>
 <td><code>basic_snapshot</code> <span class="twemoji" title="featured"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.45 4.73L5.82 21z"/></svg></span></td>
 <td>Initialise all channels and print a snapshot every 500 ms</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/basic_snapshot_example.cpp"><code>basic_snapshot_example.cpp</code></a></td>
-<td>no</td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/basic_snapshot_example.cpp"><code>basic_snapshot_example.cpp</code></a></td>
+<td>yes</td>
 </tr>
 <tr>
 <td><code>pga_offset</code> <span class="twemoji" title="featured"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.45 4.73L5.82 21z"/></svg></span></td>
-<td>Different ranges per channel, plus offset and gain registers</td>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/pga_offset_example.cpp"><code>pga_offset_example.cpp</code></a></td>
-<td>no</td>
+<td>Different ranges per channel, offset and gain correction, one snapshot for both</td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/pga_offset_example.cpp"><code>pga_offset_example.cpp</code></a></td>
+<td>yes</td>
 </tr>
 </tbody>
 </table>
@@ -1336,7 +1336,7 @@ each pull request.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./scripts/build_app.sh<span class="w"> </span>driver_integration_test<span class="w"> </span>Release
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>./scripts/flash_app.sh<span class="w"> </span>flash_monitor<span class="w"> </span>driver_integration_test<span class="w"> </span>Release
 </span></code></pre></div>
-<p>Source of this table: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/app_config.yml"><code>examples/esp32/app_config.yml</code></a>.</p>
+<p>Source of this table: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/app_config.yml"><code>examples/esp32/app_config.yml</code></a>.</p>
 <!-- /generated -->
 
 <h2 id="set-up-once">Set up once<a class="headerlink" href="#set-up-once" title="Permanent link">&para;</a></h2>
@@ -1345,7 +1345,7 @@ each pull request.</p>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>.<span class="w"> </span><span class="nv">$IDF_PATH</span>/export.sh<span class="w">                                 </span><span class="c1"># ESP-IDF v5.5</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>./scripts/build_app.sh<span class="w"> </span>list<span class="w">                           </span><span class="c1"># every app and build type</span>
 </span></code></pre></div>
-<p>The scripts read <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/app_config.yml"><code>app_config.yml</code></a> (the same file this page's table comes
+<p>The scripts read <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/app_config.yml"><code>app_config.yml</code></a> (the same file this page's table comes
 from) and build each app as its own firmware image.</p>
 <h2 id="what-to-read-in-an-example">What to read in an example<a class="headerlink" href="#what-to-read-in-an-example" title="Permanent link">&para;</a></h2>
 <table>
@@ -1374,7 +1374,7 @@ from) and build each app as its own firmware image.</p>
 </tr>
 </tbody>
 </table>
-<p>The <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/README.md">example folder's README</a> has the build commands and the test-framework notes.</p>
+<p>The <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/README.md">example folder's README</a> has the build commands and the test-framework notes.</p>
 
 
 

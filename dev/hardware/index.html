@@ -1463,7 +1463,7 @@
 <h1 id="hardware">Hardware<a class="headerlink" href="#hardware" title="Permanent link">&para;</a></h1>
 <p>What to connect between your MCU and an ADS9324, with which bus settings, and the board-level details that decide
 whether the first read works.</p>
-<p>All values here come from the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22, December 2025). When they
+<p>All values here come from the <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/datasheet/ads9324.pdf">ADS9324 datasheet</a> (SBASB22, December 2025). When they
 disagree with a board's schematic, the schematic wins for pin numbers; the datasheet wins for limits.</p>
 <h2 id="host-interface-pins">Host interface pins<a class="headerlink" href="#host-interface-pins" title="Permanent link">&para;</a></h2>
 <p>The driver uses the register SPI port for everything: register frames on SDI, register read-back and conversion
@@ -1521,17 +1521,18 @@ data on SDOUT. The eight parallel data lanes stay unused.</p>
 <tr>
 <td>RESET (32), in</td>
 <td>Active-low asynchronous reset</td>
-<td>Not driven: tie it high (to IOVDD) or give it its own GPIO</td>
+<td>Optional: tie it high (to IOVDD), or wire a GPIO and give the port <code>ResetWrite()</code> for <code>HardwareReset()</code></td>
 </tr>
 <tr>
 <td>REFSEL (31), in</td>
 <td>High: internal 4.096 V reference. Low: external reference on REFIO</td>
-<td>Not driven: tie it high for the internal reference</td>
+<td>Not driven: tie it high for the internal reference, or override it with <code>SetReference()</code></td>
 </tr>
 </tbody>
 </table>
-<p>The driver resets the chip with the SW_RST bit in GEN_CFG1, so the RESET pin can stay high. If you leave REFSEL low
-without an external reference on REFIO, the chip powers down (SBASB22 section 7.3.6).</p>
+<p><code>EnsureInitialized()</code> resets the chip with the SW_RST bit in GEN_CFG1, so the RESET pin can stay high. If you leave
+REFSEL low without an external reference on REFIO, the chip powers down (SBASB22 section 7.3.6);
+<code>SetReference(ReferenceSource::Internal)</code> selects the internal reference whatever the pin says.</p>
 <h2 id="bus-settings">Bus settings<a class="headerlink" href="#bus-settings" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1614,6 +1615,16 @@ supports only 1-lane capture.</p>
 <td>Conversion time t<sub>CONV</sub>, no oversampling</td>
 <td>1.25 µs</td>
 <td>DRDY poll, or <code>CONV_FALLBACK_US</code> = 10 µs without DRDY</td>
+</tr>
+<tr>
+<td>Conversion with oversampling ratio <em>N</em></td>
+<td><em>N</em> conversions (output rate 1 MSPS / <em>N</em>, Table 7-8)</td>
+<td>Internal clock: DRDY timeout and fallback wait times <em>N</em>; external clock: <em>N</em> CONVST pulses 2 µs apart</td>
+</tr>
+<tr>
+<td>ADC_CAL time T<sub>WAIT</sub>, single-shot</td>
+<td>125 ms (Table 7-7)</td>
+<td><code>RunAdcCalibration()</code> waits <code>ADC_CAL_WAIT_MS</code>, then polls CALIB_BUSY</td>
 </tr>
 <tr>
 <td>CONVST rate f<sub>CONVST</sub></td>
@@ -1702,7 +1713,7 @@ between REFCAPB and REFM (pins 29 and 28). Connect REFM, GND and the thermal pad
 <p>Match the source resistance on AIN<em>n</em>P with the same resistance on AIN<em>n</em>M to cancel the offset it adds.</p>
 <h2 id="evaluation-and-example-wiring">Evaluation and example wiring<a class="headerlink" href="#evaluation-and-example-wiring" title="Permanent link">&para;</a></h2>
 <p>The <a href="../examples/">ESP32 examples</a> target an ESP32-C6 DevKit; the pins are in
-<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/examples/esp32/main/esp32_ads9324_test_config.hpp"><code>esp32_ads9324_test_config.hpp</code></a>:</p>
+<a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/examples/esp32/main/esp32_ads9324_test_config.hpp"><code>esp32_ads9324_test_config.hpp</code></a>:</p>
 <table>
 <thead>
 <tr>
@@ -1754,7 +1765,7 @@ between REFCAPB and REFM (pins 29 and 28). Connect REFM, GND and the thermal pad
 </thead>
 <tbody>
 <tr>
-<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/datasheet/ads9324.pdf">ADS9324 datasheet (SBASB22)</a></td>
+<td><a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/datasheet/ads9324.pdf">ADS9324 datasheet (SBASB22)</a></td>
 <td>Pins, electrical limits, timing, register maps</td>
 </tr>
 <tr>

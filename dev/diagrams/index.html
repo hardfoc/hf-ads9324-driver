@@ -1207,13 +1207,13 @@ committed figure no longer matches the code. Each figure below lists the files i
 <details class="hf-figure-desc">
 <summary>Figure description and sources</summary>
 <p>From top to bottom. Your application talks to one ADS9324<Spi, Host> object, whose public methods are listed from inc/ads9324.hpp. The core packs 24-bit register frames, selects register banks, merges the PGA nibbles and unpacks conversion bursts. It reaches the hardware only through two CRTP contracts in inc/ads9324_spi_interface.hpp: SpiInterface (one transfer method) and HostInterface (CONVST, DRDY and two delays). The platform port is the only code you write: two small classes, or one class implementing both. Below it is the hardware.</p>
-<p>Drawn from: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a> <code>ADS9324 public methods</code>; <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a> <code>SpiInterface, HostInterface</code>; figure module <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
+<p>Drawn from: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a> <code>ADS9324 public methods</code>; <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a> <code>SpiInterface, HostInterface</code>; figure module <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
 </details>
-<p>Figure module: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a></p>
+<p>Figure module: <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a></p>
 <p>Drawn from:</p>
 <ul>
-<li><code>ADS9324 public methods</code> in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a></li>
-<li><code>SpiInterface, HostInterface</code> in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/840cc0980dcb15f5b21cee92ccb59b1b24759a43/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a></li>
+<li><code>ADS9324 public methods</code> in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324.hpp"><code>inc/ads9324.hpp</code></a></li>
+<li><code>SpiInterface, HostInterface</code> in <a href="https://github.com/hardfoc/hf-ads9324-driver/blob/9c41d80fcced2ccc0fb789b1e4b5516a238977aa/inc/ads9324_spi_interface.hpp"><code>inc/ads9324_spi_interface.hpp</code></a></li>
 </ul>
 
 
